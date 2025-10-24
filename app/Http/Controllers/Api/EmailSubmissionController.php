@@ -4,8 +4,196 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
+use App\Models\Registration;
+use App\Models\User;
+use OpenApi\Annotations as OA;
 
+/**
+ * @OA\Info(
+ *     title="RegMail API",
+ *     version="1.0.0",
+ *     description="Gmail Auto Registration System API"
+ * )
+ * @OA\Server(
+ *     url="http://127.0.0.1:8000",
+ *     description="Development Server"
+ * )
+ * @OA\SecurityScheme(
+ *     securityScheme="bearerAuth",
+ *     type="http",
+ *     scheme="bearer",
+ *     bearerFormat="JWT"
+ * )
+ */
 class EmailSubmissionController extends Controller
 {
-    //
+    /**
+     * @OA\Post(
+     *     path="/api/email/submit",
+     *     summary="Submit successful email registration",
+     *     description="Submit details of successfully created email account with registration time tracking",
+     *     tags={"Email Submission"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email","password","proxy_info"},
+     *             @OA\Property(property="email", type="string", format="email", example="testuser123@gmail.com"),
+     *             @OA\Property(property="password", type="string", example="SecurePass123!"),
+     *             @OA\Property(property="registration_time", type="integer", example=3600, description="Time in seconds from start to successful registration (optional, defaults to 0)"),
+     *             @OA\Property(property="proxy_info", type="object",
+     *                 @OA\Property(property="ip", type="string", example="192.168.1.100"),
+     *                 @OA\Property(property="port", type="integer", example=8080),
+     *                 @OA\Property(property="username", type="string", example="proxy_user"),
+     *                 @OA\Property(property="password", type="string", example="proxy_pass")
+     *             ),
+     *             @OA\Property(property="metadata", type="object",
+     *                 @OA\Property(property="user_agent", type="string", example="Mozilla/5.0..."),
+     *                 @OA\Property(property="creation_time", type="string", format="date-time", example="2025-10-24T21:30:00Z"),
+     *                 @OA\Property(property="verification_status", type="string", example="verified"),
+     *                 @OA\Property(property="notes", type="string", example="Account created successfully")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Email submission successful",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Email account submitted successfully"),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="registration_id", type="integer", example=123),
+     *                 @OA\Property(property="email", type="string", example="testuser123@gmail.com"),
+     *                 @OA\Property(property="status", type="string", example="success"),
+     *                 @OA\Property(property="registration_time", type="integer", example=3600),
+     *                 @OA\Property(property="submitted_at", type="string", format="date-time")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Validation error"),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Unauthorized")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Quota exceeded",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Monthly quota exceeded")
+     *         )
+     *     )
+     * )
+     */
+    public function submit(Request $request): JsonResponse
+    {
+        try {
+            // Validate request
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email|max:255',
+                'password' => 'required|string|min:8|max:255',
+                'registration_time' => 'nullable|integer|min:0',
+                'proxy_info' => 'required|array',
+                'proxy_info.ip' => 'required|ip',
+                'proxy_info.port' => 'required|integer|min:1|max:65535',
+                'proxy_info.username' => 'nullable|string|max:255',
+                'proxy_info.password' => 'nullable|string|max:255',
+                'metadata' => 'nullable|array'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation error',
+                    'errors' => $validator->errors()
+                ], 400);
+            }
+
+            $user = $request->user();
+
+            // Check if user has remaining quota
+            if ($user->used_quota >= $user->monthly_quota) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Monthly quota exceeded'
+                ], 403);
+            }
+
+            // Get registration time in seconds from request or use 0
+            $registrationTimeSeconds = $request->input('registration_time', 0);
+
+            // Calculate actual registration time (current time - registration_time_seconds)
+            $registrationTime = now()->subSeconds($registrationTimeSeconds);
+
+            // Create registration record
+            $registration = Registration::create([
+                'user_id' => $user->id,
+                'email' => $request->email,
+                'password' => encrypt($request->password), // Encrypt password
+                'status' => 'success',
+                'metadata' => array_merge($request->metadata ?? [], [
+                    'proxy_info' => $request->proxy_info,
+                    'submitted_at' => now()->toISOString(),
+                    'registration_time_seconds' => $registrationTimeSeconds,
+                    'registration_time' => $registrationTime->toISOString(),
+                    'user_agent' => $request->userAgent(),
+                    'ip_address' => $request->ip()
+                ]),
+                'proxy_ip' => $request->proxy_info['ip'],
+                'started_at' => $registrationTime,
+                'completed_at' => now()
+            ]);
+
+            // Update user quota
+            $user->increment('used_quota');
+
+            // Log activity
+            Log::info('Email submission successful', [
+                'user_id' => $user->id,
+                'email' => $request->email,
+                'registration_id' => $registration->id,
+                'registration_time_seconds' => $registrationTimeSeconds,
+                'registration_time' => $registrationTime->toISOString(),
+                'ip' => $request->ip()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Email account submitted successfully',
+                'data' => [
+                    'registration_id' => $registration->id,
+                    'email' => $request->email,
+                    'status' => 'success',
+                    'registration_time' => $registrationTimeSeconds,
+                    'submitted_at' => $registration->created_at->toISOString()
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Email submission failed', [
+                'user_id' => $request->user()->id ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Internal server error'
+            ], 500);
+        }
+    }
 }

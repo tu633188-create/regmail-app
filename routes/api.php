@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\EmailSubmissionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -111,5 +112,10 @@ Route::middleware('jwt.auth')->group(function () {
                 ]
             ]);
         });
+    });
+
+    // Email submission routes
+    Route::prefix('email')->group(function () {
+        Route::post('submit', [EmailSubmissionController::class, 'submit']);
     });
 });
