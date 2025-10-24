@@ -50,6 +50,18 @@ class RegistrationResource extends Resource
                     ->searchable()
                     ->preload(),
 
+                Forms\Components\TextInput::make('device_fingerprint')
+                    ->label('Device Fingerprint')
+                    ->maxLength(255)
+                    ->placeholder('device_abc123xyz')
+                    ->searchable(),
+
+                Forms\Components\TextInput::make('device_name')
+                    ->label('Device Name')
+                    ->maxLength(255)
+                    ->placeholder('My Laptop')
+                    ->searchable(),
+
                 Forms\Components\TextInput::make('email')
                     ->label('Email')
                     ->email()
@@ -111,12 +123,24 @@ class RegistrationResource extends Resource
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('device_fingerprint')
-                    ->label('Device')
+                    ->label('Device Fingerprint')
                     ->searchable()
                     ->copyable()
                     ->copyMessage('Device fingerprint copied')
                     ->copyMessageDuration(1500)
                     ->placeholder('No device info'),
+
+                Tables\Columns\TextColumn::make('device_name')
+                    ->label('Device Name')
+                    ->getStateUsing(function (Registration $record): string {
+                        // Get device name from user_devices table
+                        $device = \App\Models\UserDevice::where('device_fingerprint', $record->device_fingerprint)
+                            ->where('user_id', $record->user_id)
+                            ->first();
+                        return $device ? $device->device_name : 'Unknown Device';
+                    })
+                    ->searchable()
+                    ->placeholder('Unknown Device'),
 
                 Tables\Columns\TextColumn::make('email')
                     ->label('Email')
@@ -211,6 +235,23 @@ class RegistrationResource extends Resource
                         return $query->when(
                             $data['device_fingerprint'],
                             fn(Builder $query, $fingerprint): Builder => $query->where('device_fingerprint', 'like', "%{$fingerprint}%")
+                        );
+                    }),
+
+                Tables\Filters\Filter::make('device_name')
+                    ->form([
+                        Forms\Components\TextInput::make('device_name')
+                            ->label('Device Name')
+                            ->placeholder('Enter device name'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when(
+                            $data['device_name'],
+                            function (Builder $query, $deviceName) {
+                                $query->whereHas('user.devices', function (Builder $deviceQuery) use ($deviceName) {
+                                    $deviceQuery->where('device_name', 'like', "%{$deviceName}%");
+                                });
+                            }
                         );
                     }),
 

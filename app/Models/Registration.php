@@ -9,7 +9,9 @@ class Registration extends Model
 {
     protected $fillable = [
         'user_id',
+        'device_fingerprint',
         'email',
+        'recovery_email',
         'password',
         'status',
         'error_message',
@@ -31,6 +33,12 @@ class Registration extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function device(): BelongsTo
+    {
+        return $this->belongsTo(UserDevice::class, 'device_fingerprint', 'device_fingerprint')
+            ->where('user_id', $this->user_id);
     }
 
     public function isPending(): bool

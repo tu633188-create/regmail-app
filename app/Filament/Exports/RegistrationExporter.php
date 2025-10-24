@@ -21,6 +21,14 @@ class RegistrationExporter extends Exporter
                 ->label('User'),
             ExportColumn::make('device_fingerprint')
                 ->label('Device Fingerprint'),
+            ExportColumn::make('device_name')
+                ->label('Device Name')
+                ->state(function (Registration $record): string {
+                    $device = \App\Models\UserDevice::where('device_fingerprint', $record->device_fingerprint)
+                        ->where('user_id', $record->user_id)
+                        ->first();
+                    return $device ? $device->device_name : 'Unknown Device';
+                }),
             ExportColumn::make('email')
                 ->label('Email'),
             ExportColumn::make('recovery_email')

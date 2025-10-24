@@ -28,7 +28,6 @@ Route::prefix('auth')->group(function () {
     Route::get('validate', [AuthController::class, 'validate']);
     Route::get('devices', [AuthController::class, 'devices']);
     Route::delete('devices/{deviceId}', [AuthController::class, 'logoutDevice']);
-    Route::get('device-fingerprint-guide', [AuthController::class, 'getDeviceFingerprintGuide']);
 });
 
 // Protected routes (require JWT token)

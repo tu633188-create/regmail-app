@@ -40,7 +40,7 @@ class AuthController extends Controller
      * @OA\Post(
      *     path="/api/auth/login",
      *     summary="User Login",
-     *     description="Authenticate user and return JWT token",
+     *     description="Authenticate user and return JWT token. Device fingerprint is automatically generated from request headers. For Python clients, generate fingerprint using: import hashlib, platform, uuid; system_info = platform.platform() + platform.machine() + str(uuid.getnode()); fingerprint = 'device_' + hashlib.sha256(system_info.encode()).hexdigest()[:12]",
      *     tags={"Authentication"},
      *     @OA\RequestBody(
      *         required=true,
@@ -578,40 +578,5 @@ class AuthController extends Controller
         }
 
         return 'Unknown';
-    }
-
-    /**
-     * @OA\Get(
-     *     path="/api/auth/device-fingerprint-guide",
-     *     summary="Get device fingerprint generation guide",
-     *     description="Get instructions for generating device fingerprint in Python client",
-     *     tags={"Authentication"},
-     *     @OA\Response(
-     *         response=200,
-     *         description="Device fingerprint guide",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="guide", type="object",
-     *                 @OA\Property(property="description", type="string", example="Generate unique device fingerprint for tracking"),
-     *                 @OA\Property(property="python_code", type="string", example="import hashlib\nimport platform\nimport uuid\n\ndef generate_device_fingerprint():\n    # Get system info\n    system_info = {\n        'platform': platform.platform(),\n        'machine': platform.machine(),\n        'processor': platform.processor(),\n        'system': platform.system(),\n        'release': platform.release(),\n        'version': platform.version(),\n        'mac_address': ':'.join(['{:02x}'.format((uuid.getnode() >> elements) & 0xff) for elements in range(0,2*6,2)][::-1])\n    }\n    \n    # Create fingerprint string\n    fingerprint_data = f\"{system_info['platform']}_{system_info['machine']}_{system_info['mac_address']}\"\n    \n    # Generate hash\n    return hashlib.sha256(fingerprint_data.encode()).hexdigest()[:16]"),
-     *                 @OA\Property(property="example_fingerprint", type="string", example="device_a1b2c3d4e5f6"),
-     *                 @OA\Property(property="usage", type="string", example="Include this fingerprint in login and email submission requests")
-     *             )
-     *         )
-     *     )
-     * )
-     */
-    public function getDeviceFingerprintGuide(): JsonResponse
-    {
-        return response()->json([
-            'success' => true,
-            'guide' => [
-                'description' => 'Generate unique device fingerprint for tracking',
-                'python_code' => "import hashlib\nimport platform\nimport uuid\n\ndef generate_device_fingerprint():\n    # Get system info\n    system_info = {\n        'platform': platform.platform(),\n        'machine': platform.machine(),\n        'processor': platform.processor(),\n        'system': platform.system(),\n        'release': platform.release(),\n        'version': platform.version(),\n        'mac_address': ':'.join(['{:02x}'.format((uuid.getnode() >> elements) & 0xff) for elements in range(0,2*6,2)][::-1])\n    }\n    \n    # Create fingerprint string\n    fingerprint_data = f\"{system_info['platform']}_{system_info['machine']}_{system_info['mac_address']}\"\n    \n    # Generate hash\n    return 'device_' + hashlib.sha256(fingerprint_data.encode()).hexdigest()[:12]",
-                'example_fingerprint' => 'device_a1b2c3d4e5f6',
-                'usage' => 'Include this fingerprint in login and email submission requests',
-                'note' => 'The fingerprint should be consistent for the same device but unique across different devices'
-            ]
-        ]);
     }
 }
