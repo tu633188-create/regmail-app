@@ -29,6 +29,11 @@ class RegistrationResource extends Resource
 {
     protected static ?string $model = Registration::class;
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with(['user', 'device']);
+    }
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedEnvelope;
 
     protected static ?string $navigationLabel = 'Email Registrations';
@@ -53,14 +58,26 @@ class RegistrationResource extends Resource
                 Forms\Components\TextInput::make('device_fingerprint')
                     ->label('Device Fingerprint')
                     ->maxLength(255)
-                    ->placeholder('device_abc123xyz')
-                    ->searchable(),
+                    ->placeholder('device_abc123xyz'),
 
-                Forms\Components\TextInput::make('device_name')
+                Forms\Components\TextInput::make('device_name_display')
                     ->label('Device Name')
                     ->maxLength(255)
-                    ->placeholder('My Laptop')
-                    ->searchable(),
+                    ->placeholder('No device name')
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->afterStateHydrated(function ($component, $state, $record) {
+                        if ($record) {
+                            $device = $record->device;
+                            if ($device) {
+                                $component->state($device->device_name);
+                            } else {
+                                $component->state('Device not found');
+                            }
+                        } else {
+                            $component->state('Record not loaded');
+                        }
+                    }),
 
                 Forms\Components\TextInput::make('email')
                     ->label('Email')
@@ -115,12 +132,14 @@ class RegistrationResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('id')
                     ->label('ID')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('user.username')
                     ->label('User')
                     ->sortable()
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('device_fingerprint')
                     ->label('Device Fingerprint')
@@ -128,7 +147,8 @@ class RegistrationResource extends Resource
                     ->copyable()
                     ->copyMessage('Device fingerprint copied')
                     ->copyMessageDuration(1500)
-                    ->placeholder('No device info'),
+                    ->placeholder('No device info')
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('device_name')
                     ->label('Device Name')
@@ -140,14 +160,16 @@ class RegistrationResource extends Resource
                         return $device ? $device->device_name : 'Unknown Device';
                     })
                     ->searchable()
-                    ->placeholder('Unknown Device'),
+                    ->placeholder('Unknown Device')
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('email')
                     ->label('Email')
                     ->searchable()
                     ->copyable()
                     ->copyMessage('Email copied')
-                    ->copyMessageDuration(1500),
+                    ->copyMessageDuration(1500)
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('recovery_email')
                     ->label('Recovery Email')
@@ -155,7 +177,8 @@ class RegistrationResource extends Resource
                     ->copyable()
                     ->copyMessage('Recovery email copied')
                     ->copyMessageDuration(1500)
-                    ->placeholder('No recovery email'),
+                    ->placeholder('No recovery email')
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')
@@ -166,7 +189,8 @@ class RegistrationResource extends Resource
                         'pending' => 'warning',
                         'cancelled' => 'gray',
                         default => 'gray',
-                    }),
+                    })
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('registration_time')
                     ->label('Registration Time')
@@ -188,21 +212,25 @@ class RegistrationResource extends Resource
                             return sprintf('%ds', $remainingSeconds);
                         }
                     })
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('proxy_ip')
                     ->label('Proxy IP')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('started_at')
                     ->label('Started At')
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('completed_at')
                     ->label('Completed At')
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Submitted At')
@@ -248,7 +276,7 @@ class RegistrationResource extends Resource
                         return $query->when(
                             $data['device_name'],
                             function (Builder $query, $deviceName) {
-                                $query->whereHas('user.devices', function (Builder $deviceQuery) use ($deviceName) {
+                                $query->whereHas('device', function (Builder $deviceQuery) use ($deviceName) {
                                     $deviceQuery->where('device_name', 'like', "%{$deviceName}%");
                                 });
                             }
@@ -304,7 +332,13 @@ class RegistrationResource extends Resource
                     ->label('Export to Excel')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('success')
-                    ->exporter(RegistrationExporter::class),
+                    ->exporter(RegistrationExporter::class)
+                    ->fileName('registrations-export')
+                    ->modalHeading('Export Registrations')
+                    ->modalDescription('Export all registrations to Excel file')
+                    ->modalSubmitActionLabel('Export')
+                    ->chunkSize(100),
+
             ])
             ->actions([
                 ViewAction::make(),

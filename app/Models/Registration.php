@@ -37,8 +37,7 @@ class Registration extends Model
 
     public function device(): BelongsTo
     {
-        return $this->belongsTo(UserDevice::class, 'device_fingerprint', 'device_fingerprint')
-            ->where('user_id', $this->user_id);
+        return $this->belongsTo(UserDevice::class, 'device_fingerprint', 'device_fingerprint');
     }
 
     public function isPending(): bool

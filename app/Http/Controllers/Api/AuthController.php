@@ -11,11 +11,13 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
+
 
 /**
  * @OA\Info(
@@ -141,16 +143,24 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // Device fingerprinting
-        $deviceId = $this->generateDeviceId($request);
-        $deviceFingerprint = $this->generateDeviceFingerprint($request);
+        // Device fingerprinting - use client fingerprint
+        $deviceFingerprint = $request->input('device_fingerprint');
+        if (!$deviceFingerprint) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Device fingerprint is required'
+            ], 400);
+        }
+
+        // Log device fingerprint for debugging
+        Log::info('Device fingerprint: ' . $deviceFingerprint);
 
         // Check device limit
         if (!$user->canAddDevice()) {
             // Force logout oldest device
             $oldestDevice = $user->devices()
                 ->where('is_active', true)
-                ->orderBy('last_seen_at', 'asc')
+                ->orderBy('last_used_at', 'asc')
                 ->first();
 
             if ($oldestDevice) {
@@ -177,7 +187,10 @@ class AuthController extends Controller
 
             // Generate JWT token
             $token = JWTAuth::fromUser($user);
-            $payload = JWTAuth::getPayload($token);
+
+            // Set token for payload extraction
+            JWTAuth::setToken($token);
+            $payload = JWTAuth::getPayload();
             $tokenId = $payload->get('jti');
 
             // Store token in database
@@ -186,7 +199,7 @@ class AuthController extends Controller
                 'token_id' => $tokenId,
                 'token_hash' => hash('sha256', $token),
                 'expires_at' => $payload->get('exp'),
-                'device_id' => $deviceId,
+                'device_id' => $device->id,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
@@ -210,7 +223,7 @@ class AuthController extends Controller
                         'used_quota' => $user->used_quota,
                     ],
                     'device' => [
-                        'id' => $deviceId,
+                        'id' => $device->device_fingerprint,
                         'name' => $device->device_name,
                     ]
                 ]
