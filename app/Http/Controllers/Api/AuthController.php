@@ -48,7 +48,7 @@ class AuthController extends Controller
      *             required={"username","password"},
      *             @OA\Property(property="username", type="string", example="admin"),
      *             @OA\Property(property="password", type="string", example="admin123"),
-     *             @OA\Property(property="device_name", type="string", example="Chrome Browser")
+     *             @OA\Property(property="device_name", type="string", example="My Laptop", description="Optional device name for identification")
      *         )
      *     ),
      *     @OA\Response(
@@ -111,6 +111,7 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'username' => 'required|string',
             'password' => 'required|string',
+            'device_name' => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -160,15 +161,17 @@ class AuthController extends Controller
         try {
             // Create or update device
             $device = UserDevice::updateOrCreate(
-                ['device_id' => $deviceId],
+                ['device_fingerprint' => $deviceFingerprint],
                 [
                     'user_id' => $user->id,
-                    'device_name' => $request->input('device_name', 'Unknown Device'),
+                    'device_name' => $request->input('device_name') ?: 'Unnamed Device',
+                    'device_type' => $this->detectDeviceType($request),
+                    'os' => $this->detectOS($request),
+                    'browser' => $this->detectBrowser($request),
                     'ip_address' => $request->ip(),
                     'user_agent' => $request->userAgent(),
-                    'device_fingerprint' => $deviceFingerprint,
                     'is_active' => true,
-                    'last_seen_at' => now(),
+                    'last_used_at' => now(),
                 ]
             );
 
@@ -513,5 +516,102 @@ class AuthController extends Controller
         ];
 
         return hash('sha256', json_encode($data));
+    }
+
+    /**
+     * Detect device type from user agent
+     */
+    private function detectDeviceType(Request $request): string
+    {
+        $userAgent = $request->userAgent();
+
+        if (preg_match('/Mobile|Android|iPhone|iPad/', $userAgent)) {
+            return 'mobile';
+        } elseif (preg_match('/Tablet|iPad/', $userAgent)) {
+            return 'tablet';
+        } elseif (preg_match('/Windows|Macintosh|Linux/', $userAgent)) {
+            return 'desktop';
+        }
+
+        return 'unknown';
+    }
+
+    /**
+     * Detect operating system from user agent
+     */
+    private function detectOS(Request $request): string
+    {
+        $userAgent = $request->userAgent();
+
+        if (preg_match('/Windows NT 10/', $userAgent)) {
+            return 'Windows 10/11';
+        } elseif (preg_match('/Windows NT 6/', $userAgent)) {
+            return 'Windows 7/8';
+        } elseif (preg_match('/Mac OS X/', $userAgent)) {
+            return 'macOS';
+        } elseif (preg_match('/Linux/', $userAgent)) {
+            return 'Linux';
+        } elseif (preg_match('/Android/', $userAgent)) {
+            return 'Android';
+        } elseif (preg_match('/iPhone|iPad/', $userAgent)) {
+            return 'iOS';
+        }
+
+        return 'Unknown';
+    }
+
+    /**
+     * Detect browser from user agent
+     */
+    private function detectBrowser(Request $request): string
+    {
+        $userAgent = $request->userAgent();
+
+        if (preg_match('/Chrome\/(\d+)/', $userAgent, $matches)) {
+            return 'Chrome ' . $matches[1];
+        } elseif (preg_match('/Firefox\/(\d+)/', $userAgent, $matches)) {
+            return 'Firefox ' . $matches[1];
+        } elseif (preg_match('/Safari\/(\d+)/', $userAgent, $matches)) {
+            return 'Safari ' . $matches[1];
+        } elseif (preg_match('/Edge\/(\d+)/', $userAgent, $matches)) {
+            return 'Edge ' . $matches[1];
+        }
+
+        return 'Unknown';
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/auth/device-fingerprint-guide",
+     *     summary="Get device fingerprint generation guide",
+     *     description="Get instructions for generating device fingerprint in Python client",
+     *     tags={"Authentication"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Device fingerprint guide",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="guide", type="object",
+     *                 @OA\Property(property="description", type="string", example="Generate unique device fingerprint for tracking"),
+     *                 @OA\Property(property="python_code", type="string", example="import hashlib\nimport platform\nimport uuid\n\ndef generate_device_fingerprint():\n    # Get system info\n    system_info = {\n        'platform': platform.platform(),\n        'machine': platform.machine(),\n        'processor': platform.processor(),\n        'system': platform.system(),\n        'release': platform.release(),\n        'version': platform.version(),\n        'mac_address': ':'.join(['{:02x}'.format((uuid.getnode() >> elements) & 0xff) for elements in range(0,2*6,2)][::-1])\n    }\n    \n    # Create fingerprint string\n    fingerprint_data = f\"{system_info['platform']}_{system_info['machine']}_{system_info['mac_address']}\"\n    \n    # Generate hash\n    return hashlib.sha256(fingerprint_data.encode()).hexdigest()[:16]"),
+     *                 @OA\Property(property="example_fingerprint", type="string", example="device_a1b2c3d4e5f6"),
+     *                 @OA\Property(property="usage", type="string", example="Include this fingerprint in login and email submission requests")
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function getDeviceFingerprintGuide(): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'guide' => [
+                'description' => 'Generate unique device fingerprint for tracking',
+                'python_code' => "import hashlib\nimport platform\nimport uuid\n\ndef generate_device_fingerprint():\n    # Get system info\n    system_info = {\n        'platform': platform.platform(),\n        'machine': platform.machine(),\n        'processor': platform.processor(),\n        'system': platform.system(),\n        'release': platform.release(),\n        'version': platform.version(),\n        'mac_address': ':'.join(['{:02x}'.format((uuid.getnode() >> elements) & 0xff) for elements in range(0,2*6,2)][::-1])\n    }\n    \n    # Create fingerprint string\n    fingerprint_data = f\"{system_info['platform']}_{system_info['machine']}_{system_info['mac_address']}\"\n    \n    # Generate hash\n    return 'device_' + hashlib.sha256(fingerprint_data.encode()).hexdigest()[:12]",
+                'example_fingerprint' => 'device_a1b2c3d4e5f6',
+                'usage' => 'Include this fingerprint in login and email submission requests',
+                'note' => 'The fingerprint should be consistent for the same device but unique across different devices'
+            ]
+        ]);
     }
 }

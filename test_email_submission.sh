@@ -41,6 +41,7 @@ SUBMIT_RESPONSE=$(curl -s -X POST "$BASE_URL/email/submit" \
   -d '{
     "email": "testuser123@gmail.com",
     "password": "SecurePass123!",
+    "device_fingerprint": "device_abc123xyz",
     "proxy_info": {
       "ip": "192.168.1.100",
       "port": 8080,
@@ -109,7 +110,8 @@ VALIDATION_RESPONSE=$(curl -s -X POST "$BASE_URL/email/submit" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{
     "email": "invalid-email",
-    "password": "123"
+    "password": "123",
+    "device_fingerprint": "device_invalid"
   }')
 
 echo "Validation Error Response:"
@@ -124,7 +126,8 @@ UNAUTHORIZED_RESPONSE=$(curl -s -X POST "$BASE_URL/email/submit" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com",
-    "password": "password123"
+    "password": "password123",
+    "device_fingerprint": "device_unauthorized"
   }')
 
 echo "Unauthorized Response:"

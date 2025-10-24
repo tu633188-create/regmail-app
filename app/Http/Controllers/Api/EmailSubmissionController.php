@@ -40,10 +40,12 @@ class EmailSubmissionController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"email","password","proxy_info"},
+     *             required={"email","password","proxy_info","device_fingerprint"},
      *             @OA\Property(property="email", type="string", format="email", example="testuser123@gmail.com"),
+     *             @OA\Property(property="recovery_email", type="string", format="email", example="recovery123@gmail.com", description="Recovery email for account recovery"),
      *             @OA\Property(property="password", type="string", example="SecurePass123!"),
      *             @OA\Property(property="registration_time", type="integer", example=3600, description="Time in seconds from start to successful registration (optional, defaults to 0)"),
+     *             @OA\Property(property="device_fingerprint", type="string", example="device_abc123xyz", description="Unique device identifier for tracking which device registered the email"),
      *             @OA\Property(property="proxy_info", type="object",
      *                 @OA\Property(property="ip", type="string", example="192.168.1.100"),
      *                 @OA\Property(property="port", type="integer", example=8080),
@@ -106,8 +108,10 @@ class EmailSubmissionController extends Controller
             // Validate request
             $validator = Validator::make($request->all(), [
                 'email' => 'required|email|max:255',
+                'recovery_email' => 'nullable|email|max:255',
                 'password' => 'required|string|min:8|max:255',
                 'registration_time' => 'nullable|integer|min:0',
+                'device_fingerprint' => 'required|string|max:255',
                 'proxy_info' => 'required|array',
                 'proxy_info.ip' => 'required|ip',
                 'proxy_info.port' => 'required|integer|min:1|max:65535',
@@ -143,7 +147,9 @@ class EmailSubmissionController extends Controller
             // Create registration record
             $registration = Registration::create([
                 'user_id' => $user->id,
+                'device_fingerprint' => $request->device_fingerprint,
                 'email' => $request->email,
+                'recovery_email' => $request->recovery_email,
                 'password' => encrypt($request->password), // Encrypt password
                 'status' => 'success',
                 'metadata' => array_merge($request->metadata ?? [], [

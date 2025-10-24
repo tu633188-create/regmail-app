@@ -10,20 +10,22 @@ class UserDevice extends Model
 {
     protected $fillable = [
         'user_id',
-        'device_id',
         'device_name',
+        'device_fingerprint',
+        'device_type',
+        'os',
+        'browser',
         'ip_address',
         'user_agent',
-        'device_fingerprint',
         'is_active',
-        'last_seen_at',
+        'last_used_at',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
-            'last_seen_at' => 'datetime',
+            'last_used_at' => 'datetime',
         ];
     }
 
@@ -34,12 +36,17 @@ class UserDevice extends Model
 
     public function tokens(): HasMany
     {
-        return $this->hasMany(JwtToken::class, 'device_id', 'device_id');
+        return $this->hasMany(JwtToken::class, 'device_fingerprint', 'device_fingerprint');
     }
 
-    public function updateLastSeen(): void
+    public function registrations(): HasMany
     {
-        $this->update(['last_seen_at' => now()]);
+        return $this->hasMany(Registration::class, 'device_fingerprint', 'device_fingerprint');
+    }
+
+    public function updateLastUsed(): void
+    {
+        $this->update(['last_used_at' => now()]);
     }
 
     public function deactivate(): void
