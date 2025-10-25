@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# Redirect to public directory
+RewriteCond %{REQUEST_URI} !^/regmail-app/public/
+RewriteRule ^(.*)$ /regmail-app/public/$1 [L]
+
+# Alternative: If you want to serve from public directory directly
+# RewriteCond %{REQUEST_URI} !^/regmail-app/public/
+# RewriteRule ^(.*)$ /regmail-app/public/index.php [L]
