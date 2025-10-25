@@ -16,11 +16,11 @@ from datetime import datetime
 class RegMailGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("RegMail API Client")
-        self.root.geometry("800x600")
+        self.root.title("RegMail API Client - Production")
+        self.root.geometry("900x700")
         
         # API Configuration
-        self.base_url = "http://127.0.0.1:8000/api"
+        self.base_url = "https://trananhtu.vn/api"
         self.token = None
         self.device_fingerprint = self.generate_device_fingerprint()
         
@@ -42,6 +42,9 @@ class RegMailGUI:
         
         # Email Submission Tab
         self.setup_email_tab(notebook)
+        
+        # API Testing Tab
+        self.setup_api_tab(notebook)
         
         # Log Tab
         self.setup_log_tab(notebook)
@@ -72,13 +75,18 @@ class RegMailGUI:
         fingerprint_label = ttk.Label(login_frame, text=self.device_fingerprint, foreground="blue")
         fingerprint_label.grid(row=3, column=1, sticky=tk.W, padx=5, pady=5)
         
+        # API URL display
+        ttk.Label(login_frame, text="API URL:").grid(row=4, column=0, sticky=tk.W, padx=5, pady=5)
+        url_label = ttk.Label(login_frame, text=self.base_url, foreground="green")
+        url_label.grid(row=4, column=1, sticky=tk.W, padx=5, pady=5)
+        
         # Login button
         login_btn = ttk.Button(login_frame, text="Login", command=self.login)
-        login_btn.grid(row=4, column=1, padx=5, pady=10)
+        login_btn.grid(row=5, column=1, padx=5, pady=10)
         
         # Status
         self.login_status = ttk.Label(login_frame, text="Not logged in", foreground="red")
-        self.login_status.grid(row=5, column=0, columnspan=2, padx=5, pady=5)
+        self.login_status.grid(row=6, column=0, columnspan=2, padx=5, pady=5)
         
     def setup_email_tab(self, notebook):
         """Setup email submission tab"""
@@ -125,6 +133,26 @@ class RegMailGUI:
         self.email_status = ttk.Label(email_frame, text="Ready to submit", foreground="blue")
         self.email_status.grid(row=7, column=0, columnspan=2, padx=5, pady=5)
         
+    def setup_api_tab(self, notebook):
+        """Setup API testing tab"""
+        api_frame = ttk.Frame(notebook)
+        notebook.add(api_frame, text="API Test")
+        
+        # API test buttons
+        ttk.Button(api_frame, text="Test Profile", command=self.test_profile).grid(row=0, column=0, padx=5, pady=5)
+        ttk.Button(api_frame, text="Test Stats", command=self.test_stats).grid(row=0, column=1, padx=5, pady=5)
+        ttk.Button(api_frame, text="Test History", command=self.test_history).grid(row=0, column=2, padx=5, pady=5)
+        ttk.Button(api_frame, text="Test Quota", command=self.test_quota).grid(row=1, column=0, padx=5, pady=5)
+        ttk.Button(api_frame, text="Test Devices", command=self.test_devices).grid(row=1, column=1, padx=5, pady=5)
+        ttk.Button(api_frame, text="Test Validate", command=self.test_validate).grid(row=1, column=2, padx=5, pady=5)
+        
+        # API response area
+        self.api_response = scrolledtext.ScrolledText(api_frame, height=15, width=80)
+        self.api_response.grid(row=2, column=0, columnspan=3, padx=5, pady=5, sticky="nsew")
+        
+        # Clear button
+        ttk.Button(api_frame, text="Clear Response", command=self.clear_api_response).grid(row=3, column=1, padx=5, pady=5)
+        
     def setup_log_tab(self, notebook):
         """Setup log tab"""
         log_frame = ttk.Frame(notebook)
@@ -161,6 +189,8 @@ class RegMailGUI:
             return
             
         self.log_message(f"Attempting login for user: {username}")
+        self.log_message(f"API URL: {self.base_url}")
+        self.log_message(f"Device fingerprint: {self.device_fingerprint}")
         
         try:
             response = requests.post(
@@ -174,7 +204,8 @@ class RegMailGUI:
                 headers={
                     "Content-Type": "application/json",
                     "Accept": "application/json"
-                }
+                },
+                timeout=30  # Add timeout for production
             )
             
             if response.status_code == 200:
@@ -243,7 +274,8 @@ class RegMailGUI:
                     "Content-Type": "application/json",
                     "Accept": "application/json",
                     "Authorization": f"Bearer {self.token}"
-                }
+                },
+                timeout=30  # Add timeout for production
             )
             
             if response.status_code == 200:
@@ -265,6 +297,104 @@ class RegMailGUI:
         except ValueError as e:
             self.email_status.config(text="Invalid input", foreground="red")
             self.log_message(f"Invalid input: {str(e)}")
+    
+    def test_profile(self):
+        """Test user profile endpoint"""
+        if not self.token:
+            self.api_response.insert(tk.END, "Error: Please login first\n")
+            return
+        
+        try:
+            response = requests.get(
+                f"{self.base_url}/users/profile",
+                headers={"Authorization": f"Bearer {self.token}"},
+                timeout=30
+            )
+            self.api_response.insert(tk.END, f"Profile Response ({response.status_code}):\n")
+            self.api_response.insert(tk.END, json.dumps(response.json(), indent=2) + "\n\n")
+        except Exception as e:
+            self.api_response.insert(tk.END, f"Profile Error: {str(e)}\n\n")
+    
+    def test_stats(self):
+        """Test registration stats endpoint"""
+        try:
+            response = requests.get(f"{self.base_url}/register/stats", timeout=30)
+            self.api_response.insert(tk.END, f"Stats Response ({response.status_code}):\n")
+            self.api_response.insert(tk.END, json.dumps(response.json(), indent=2) + "\n\n")
+        except Exception as e:
+            self.api_response.insert(tk.END, f"Stats Error: {str(e)}\n\n")
+    
+    def test_history(self):
+        """Test registration history endpoint"""
+        if not self.token:
+            self.api_response.insert(tk.END, "Error: Please login first\n")
+            return
+        
+        try:
+            response = requests.get(
+                f"{self.base_url}/register/history",
+                headers={"Authorization": f"Bearer {self.token}"},
+                timeout=30
+            )
+            self.api_response.insert(tk.END, f"History Response ({response.status_code}):\n")
+            self.api_response.insert(tk.END, json.dumps(response.json(), indent=2) + "\n\n")
+        except Exception as e:
+            self.api_response.insert(tk.END, f"History Error: {str(e)}\n\n")
+    
+    def test_quota(self):
+        """Test user quota endpoint"""
+        if not self.token:
+            self.api_response.insert(tk.END, "Error: Please login first\n")
+            return
+        
+        try:
+            response = requests.get(
+                f"{self.base_url}/users/quota",
+                headers={"Authorization": f"Bearer {self.token}"},
+                timeout=30
+            )
+            self.api_response.insert(tk.END, f"Quota Response ({response.status_code}):\n")
+            self.api_response.insert(tk.END, json.dumps(response.json(), indent=2) + "\n\n")
+        except Exception as e:
+            self.api_response.insert(tk.END, f"Quota Error: {str(e)}\n\n")
+    
+    def test_devices(self):
+        """Test user devices endpoint"""
+        if not self.token:
+            self.api_response.insert(tk.END, "Error: Please login first\n")
+            return
+        
+        try:
+            response = requests.get(
+                f"{self.base_url}/auth/devices",
+                headers={"Authorization": f"Bearer {self.token}"},
+                timeout=30
+            )
+            self.api_response.insert(tk.END, f"Devices Response ({response.status_code}):\n")
+            self.api_response.insert(tk.END, json.dumps(response.json(), indent=2) + "\n\n")
+        except Exception as e:
+            self.api_response.insert(tk.END, f"Devices Error: {str(e)}\n\n")
+    
+    def test_validate(self):
+        """Test token validation endpoint"""
+        if not self.token:
+            self.api_response.insert(tk.END, "Error: Please login first\n")
+            return
+        
+        try:
+            response = requests.get(
+                f"{self.base_url}/auth/validate",
+                headers={"Authorization": f"Bearer {self.token}"},
+                timeout=30
+            )
+            self.api_response.insert(tk.END, f"Validate Response ({response.status_code}):\n")
+            self.api_response.insert(tk.END, json.dumps(response.json(), indent=2) + "\n\n")
+        except Exception as e:
+            self.api_response.insert(tk.END, f"Validate Error: {str(e)}\n\n")
+    
+    def clear_api_response(self):
+        """Clear API response text"""
+        self.api_response.delete(1.0, tk.END)
 
 def main():
     root = tk.Tk()
