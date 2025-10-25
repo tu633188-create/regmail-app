@@ -4,6 +4,9 @@ RewriteEngine On
 RewriteCond %{REQUEST_URI} \.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$
 RewriteRule ^(.*)$ /regmail-app/public/$1 [L]
 
+# Handle Livewire routes
+RewriteRule ^livewire/(.*)$ /regmail-app/public/livewire/$1 [L]
+
 # Redirect /admin to /regmail-app/public/admin
 RewriteRule ^admin(.*)$ /regmail-app/public/admin$1 [L]
 
