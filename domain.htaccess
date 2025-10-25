@@ -1,0 +1,14 @@
+RewriteEngine On
+
+# Handle static assets first
+RewriteCond %{REQUEST_URI} \.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$
+RewriteRule ^(.*)$ /regmail-app/public/$1 [L]
+
+# Redirect /admin to /regmail-app/public/admin
+RewriteRule ^admin(.*)$ /regmail-app/public/admin$1 [L]
+
+# Redirect /api to /regmail-app/public/api  
+RewriteRule ^api(.*)$ /regmail-app/public/api$1 [L]
+
+# Redirect root to regmail-app
+RewriteRule ^$ /regmail-app/public/ [L]

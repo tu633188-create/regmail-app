@@ -1,4 +1,5 @@
 RewriteEngine On
 
-# Simple redirect to public directory
+# Only redirect if not already in public directory
+RewriteCond %{REQUEST_URI} !^/regmail-app/public/
 RewriteRule ^(.*)$ public/$1 [L]
