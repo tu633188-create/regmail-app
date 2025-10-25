@@ -6,9 +6,4 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Filament routes
-Route::middleware(['auth'])->group(function () {
-    Route::get('/admin', function () {
-        return redirect('/admin/dashboard');
-    });
-});
+// Filament routes - Remove this block as Filament handles its own routes
