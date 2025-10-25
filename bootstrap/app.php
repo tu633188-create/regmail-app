@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'jwt.auth' => \App\Http\Middleware\JwtAuthentication::class,
         ]);
+        
+        // Disable ValidatePathEncoding middleware that causes issues
+        $middleware->remove(\Illuminate\Http\Middleware\ValidatePathEncoding::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
