@@ -14,8 +14,18 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'jwt.auth' => \App\Http\Middleware\JwtAuthentication::class,
+            'force.https' => \App\Http\Middleware\ForceHttps::class,
         ]);
-        
+
+        // Force HTTPS for all routes in production
+        $middleware->web(append: [
+            \App\Http\Middleware\ForceHttps::class,
+        ]);
+
+        $middleware->api(append: [
+            \App\Http\Middleware\ForceHttps::class,
+        ]);
+
         // Disable ValidatePathEncoding middleware that causes issues
         $middleware->remove(\Illuminate\Http\Middleware\ValidatePathEncoding::class);
     })

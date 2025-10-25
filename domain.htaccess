@@ -1,11 +1,15 @@
 RewriteEngine On
 
-# Handle static assets first
+# Force HTTPS
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Handle Livewire routes first (most specific)
+RewriteRule ^livewire/(.*)$ /regmail-app/public/livewire/$1 [L]
+
+# Handle static assets
 RewriteCond %{REQUEST_URI} \.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$
 RewriteRule ^(.*)$ /regmail-app/public/$1 [L]
-
-# Handle Livewire routes
-RewriteRule ^livewire/(.*)$ /regmail-app/public/livewire/$1 [L]
 
 # Redirect /admin to /regmail-app/public/admin
 RewriteRule ^admin(.*)$ /regmail-app/public/admin$1 [L]
@@ -15,3 +19,4 @@ RewriteRule ^api(.*)$ /regmail-app/public/api$1 [L]
 
 # Redirect root to regmail-app
 RewriteRule ^$ /regmail-app/public/ [L]
+
