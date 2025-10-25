@@ -3,7 +3,7 @@
 ## 🚀 **Swagger UI Access**
 
 ### **Live API Documentation:**
-- **URL:** `http://127.0.0.1:8000/api/documentation`
+- **URL:** `https://trananhtu.vn/api/documentation`
 - **Description:** Interactive API documentation with Swagger UI
 - **Features:** 
   - Try out API endpoints directly
@@ -15,8 +15,19 @@
 ### **JWT Token-based Authentication**
 - All protected endpoints require JWT token in Authorization header
 - Format: `Authorization: Bearer <your-jwt-token>`
-- Token expires after configured time (default: 24 hours)
+- Token expires after configured time (default: 1 hour)
 - Use `/api/auth/refresh` to get new token before expiration
+- **Device fingerprint required** for login - generate unique device identifier
+
+### **Device Fingerprint Generation**
+For Python clients, generate fingerprint using:
+```python
+import hashlib, platform, uuid
+system_info = platform.platform() + platform.machine() + str(uuid.getnode())
+fingerprint = 'device_' + hashlib.sha256(system_info.encode()).hexdigest()[:12]
+```
+
+For other clients, use any unique string like: `device_abc123xyz`
 
 ## 📋 **Available Endpoints**
 
@@ -42,6 +53,7 @@
 | `POST` | `/api/email/submit` | Submit successful email registration | ✅ |
 | `GET` | `/api/register/history` | Get registration history | ✅ |
 | `GET` | `/api/register/stats` | Get registration statistics | ✅ |
+| `POST` | `/api/register/start` | Start registration process | ❌ |
 
 ### **Telegram Notifications**
 | Feature | Description | Configuration |
@@ -55,18 +67,19 @@
 
 ### **1. Login to get token:**
 ```bash
-curl -X POST http://127.0.0.1:8000/api/auth/login \
+curl -X POST https://trananhtu.vn/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "username": "admin",
     "password": "admin123",
-    "device_name": "Test Device"
+    "device_name": "Test Device",
+    "device_fingerprint": "test-device-123"
   }'
 ```
 
 ### **2. Submit email registration (triggers Telegram notification):**
 ```bash
-curl -X POST http://127.0.0.1:8000/api/email/submit \
+curl -X POST https://trananhtu.vn/api/email/submit \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
@@ -83,7 +96,7 @@ curl -X POST http://127.0.0.1:8000/api/email/submit \
 
 ### **3. Use token for protected endpoints:**
 ```bash
-curl -X GET http://127.0.0.1:8000/api/users/profile \
+curl -X GET https://trananhtu.vn/api/users/profile \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
@@ -95,7 +108,7 @@ php artisan l5-swagger:generate
 ```
 
 ### **View Raw JSON Schema:**
-- **URL:** `http://127.0.0.1:8000/docs/api-docs.json`
+- **URL:** `https://trananhtu.vn/docs/api-docs.json`
 
 ## 📖 **Features**
 
@@ -119,11 +132,10 @@ php artisan l5-swagger:generate
 
 ## 🎯 **Quick Start**
 
-1. **Start server:** `php artisan serve`
-2. **Open API docs:** `http://127.0.0.1:8000/api/documentation`
-3. **Login with:** `admin` / `admin123`
-4. **Configure Telegram:** Go to `http://127.0.0.1:8000/admin` → Telegram Settings
-5. **Test endpoints** directly in Swagger UI
+1. **Access API docs:** `https://trananhtu.vn/api/documentation`
+2. **Login with:** `admin` / `admin123`
+3. **Configure Telegram:** Go to `https://trananhtu.vn/admin` → Telegram Settings
+4. **Test endpoints** directly in Swagger UI
 
 ## 📱 **Telegram Setup**
 
@@ -138,7 +150,7 @@ php artisan l5-swagger:generate
 3. Or use `@getidsbot` for Chat ID
 
 ### **3. Configure in Admin Panel:**
-1. Go to `http://127.0.0.1:8000/admin`
+1. Go to `https://trananhtu.vn/admin`
 2. Navigate to "Telegram Settings"
 3. Create/Edit settings for your user
 4. Enter Bot Token and Chat ID
@@ -150,7 +162,7 @@ php artisan l5-swagger:generate
 - All API responses follow consistent format with `success`, `message`, and `data` fields
 - JWT tokens are automatically managed by the system
 - Device fingerprinting is used for security
-- Admin panel available at: `http://127.0.0.1:8000/admin`
+- Admin panel available at: `https://trananhtu.vn/admin`
 - **Telegram notifications** are sent automatically when email registration completes
 - **Device names** are included in Telegram messages for better tracking
 - **Custom templates** can be configured per user for personalized messages
