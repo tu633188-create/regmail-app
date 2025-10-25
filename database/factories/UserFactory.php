@@ -25,6 +25,7 @@ class UserFactory extends Factory
     {
         return [
             'name' => 'Test User ' . rand(1, 1000),
+            'username' => 'user' . rand(1, 1000),
             'email' => 'user' . rand(1, 1000) . '@example.com',
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
