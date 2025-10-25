@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Services\UserTelegramService;
 
 class Registration extends Model
 {
@@ -70,5 +71,41 @@ class Registration extends Model
             'error_message' => $errorMessage,
             'completed_at' => now(),
         ]);
+    }
+
+    protected static function booted()
+    {
+        static::updated(function (Registration $registration) {
+            // Send Telegram notification when status changes
+            if ($registration->wasChanged('status')) {
+                $user = $registration->user;
+                $telegram = new UserTelegramService($user);
+
+                if ($registration->isSuccess()) {
+                    $registrationTime = $registration->metadata['registration_time_seconds'] ?? null;
+
+                    // Get device name
+                    $deviceName = 'Unknown Device';
+                    $device = \App\Models\UserDevice::where('device_fingerprint', $registration->device_fingerprint)
+                        ->where('user_id', $registration->user_id)
+                        ->first();
+                    if ($device) {
+                        $deviceName = $device->device_name ?? 'Unknown Device';
+                    }
+
+                    $telegram->sendRegistrationNotification(
+                        $registration->email,
+                        'success',
+                        $registrationTime,
+                        $deviceName
+                    );
+                } elseif ($registration->isFailed()) {
+                    $telegram->sendErrorNotification(
+                        $registration->error_message ?? 'Unknown error',
+                        'Email registration failed'
+                    );
+                }
+            }
+        });
     }
 }

@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use App\Models\Registration;
 use App\Models\User;
+use App\Services\UserTelegramService;
 use OpenApi\Annotations as OA;
 
 class EmailSubmissionController extends Controller
@@ -150,6 +151,32 @@ class EmailSubmissionController extends Controller
 
             // Update user quota
             $user->increment('used_quota');
+
+            // Send Telegram notification
+            try {
+                $telegram = new UserTelegramService($user);
+
+                // Get device name from device_fingerprint
+                $deviceName = 'Unknown Device';
+                $device = \App\Models\UserDevice::where('device_fingerprint', $request->device_fingerprint)
+                    ->where('user_id', $user->id)
+                    ->first();
+                if ($device) {
+                    $deviceName = $device->device_name ?? 'Unknown Device';
+                }
+
+                $telegram->sendRegistrationNotification(
+                    $request->email,
+                    'success',
+                    $registrationTimeSeconds,
+                    $deviceName
+                );
+            } catch (\Exception $e) {
+                Log::error('Telegram notification failed', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
 
             // Log activity
             Log::info('Email submission successful', [

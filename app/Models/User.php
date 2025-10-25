@@ -71,6 +71,11 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(Registration::class);
     }
 
+    public function telegramSettings()
+    {
+        return $this->hasOne(UserTelegramSettings::class);
+    }
+
     // Helper methods
     public function isActive()
     {
@@ -90,6 +95,27 @@ class User extends Authenticatable implements JWTSubject
     public function canAddDevice()
     {
         return $this->devices()->where('is_active', true)->count() < $this->device_limit;
+    }
+
+    public function getTelegramSettings(): UserTelegramSettings
+    {
+        return $this->telegramSettings ?? $this->telegramSettings()->create([
+            'telegram_enabled' => false,
+            'registration_notifications' => false,
+            'error_notifications' => false,
+            'quota_notifications' => false,
+            'daily_summary' => false,
+        ]);
+    }
+
+    public function hasTelegramConfigured(): bool
+    {
+        return $this->getTelegramSettings()->isConfigured();
+    }
+
+    public function canReceiveTelegramNotifications(): bool
+    {
+        return $this->getTelegramSettings()->canReceiveNotifications();
     }
 
     // JWT Subject methods
