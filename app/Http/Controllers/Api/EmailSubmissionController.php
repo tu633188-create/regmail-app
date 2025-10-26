@@ -24,13 +24,13 @@ class EmailSubmissionController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"email","password","proxy_info","device_fingerprint"},
+     *             required={"email","password","device_fingerprint"},
      *             @OA\Property(property="email", type="string", format="email", example="testuser123@gmail.com"),
      *             @OA\Property(property="recovery_email", type="string", format="email", example="recovery123@gmail.com", description="Recovery email for account recovery"),
      *             @OA\Property(property="password", type="string", example="SecurePass123!"),
      *             @OA\Property(property="registration_time", type="integer", example=3600, description="Time in seconds from start to successful registration (optional, defaults to 0)"),
      *             @OA\Property(property="device_fingerprint", type="string", example="device_abc123xyz", description="Unique device identifier for tracking which device registered the email"),
-     *             @OA\Property(property="proxy_info", type="object",
+     *             @OA\Property(property="proxy_info", type="object", description="Proxy information (optional)",
      *                 @OA\Property(property="ip", type="string", example="192.168.1.100"),
      *                 @OA\Property(property="port", type="integer", example=8080),
      *                 @OA\Property(property="username", type="string", example="proxy_user"),
@@ -96,9 +96,9 @@ class EmailSubmissionController extends Controller
                 'password' => 'required|string|min:8|max:255',
                 'registration_time' => 'nullable|integer|min:0',
                 'device_fingerprint' => 'required|string|max:255',
-                'proxy_info' => 'required|array',
-                'proxy_info.ip' => 'required|ip',
-                'proxy_info.port' => 'required|integer|min:1|max:65535',
+                'proxy_info' => 'nullable|array',
+                'proxy_info.ip' => 'required_with:proxy_info|ip',
+                'proxy_info.port' => 'required_with:proxy_info|integer|min:1|max:65535',
                 'proxy_info.username' => 'nullable|string|max:255',
                 'proxy_info.password' => 'nullable|string|max:255',
                 'metadata' => 'nullable|array'
@@ -144,7 +144,7 @@ class EmailSubmissionController extends Controller
                     'user_agent' => $request->userAgent(),
                     'ip_address' => $request->ip()
                 ]),
-                'proxy_ip' => $request->proxy_info['ip'],
+                'proxy_ip' => $request->proxy_info['ip'] ?? null,
                 'started_at' => $registrationTime,
                 'completed_at' => now()
             ]);
