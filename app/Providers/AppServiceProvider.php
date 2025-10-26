@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Guards\AdminGuard;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +21,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Register custom admin guard
+        Auth::extend('admin', function ($app, $name, $config) {
+            return new AdminGuard(
+                $name,
+                Auth::createUserProvider($config['provider']),
+                $app['session.store'],
+                $app['request']
+            );
+        });
     }
 }

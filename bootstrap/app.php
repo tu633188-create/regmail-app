@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'jwt.auth' => \App\Http\Middleware\JwtAuthentication::class,
             'force.https' => \App\Http\Middleware\ForceHttps::class,
             'api.version' => \App\Http\Middleware\ApiVersionCheck::class,
+            'admin.only' => \App\Http\Middleware\AdminOnly::class,
         ]);
 
         // Force HTTPS for all routes in production
