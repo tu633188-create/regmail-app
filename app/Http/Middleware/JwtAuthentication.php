@@ -21,15 +21,36 @@ class JwtAuthentication
     public function handle(Request $request, Closure $next): Response
     {
         try {
-            // Get token and validate it exists
-            $token = JWTAuth::getToken();
+            // Get token from Authorization header
+            $authHeader = $request->header('Authorization');
+            
+            if (!$authHeader) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Authorization header not provided'
+                ], 401);
+            }
 
-            if (!$token) {
+            // Check if token starts with "Bearer "
+            if (!str_starts_with($authHeader, 'Bearer ')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid authorization header format. Expected: Bearer <token>'
+                ], 401);
+            }
+
+            // Extract token from "Bearer <token>"
+            $token = substr($authHeader, 7); // Remove "Bearer " prefix
+            
+            if (empty($token)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Token not provided'
                 ], 401);
             }
+
+            // Set token for JWT Auth
+            JWTAuth::setToken($token);
 
             // Authenticate user from token
             $user = JWTAuth::parseToken()->authenticate();
