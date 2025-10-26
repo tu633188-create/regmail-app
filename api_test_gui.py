@@ -15,44 +15,67 @@ import platform
 import uuid
 from datetime import datetime
 import urllib3
+import os
+import keyring
+import pytz
+from datetime import datetime
 
 
 class RegMailAPITester:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("RegMail API Tester")
+    def __init__(self):
+        # Create main window
+        self.root = tk.Tk()
+        self.root.title("RegMail API Tester - Main")
         self.root.geometry("800x600")
         self.root.configure(bg='#f0f0f0')
         
         # API Configuration
         self.api_base_url = "https://trananhtu.vn/api"
         self.jwt_token = None
+        self.keyring_service = "regmail-api"
+        
+        # Timezone configuration (Vietnam +7)
+        self.timezone = pytz.timezone('Asia/Ho_Chi_Minh')
         
         # Create session with retry strategy
         self.session = self.create_session()
         
-        self.setup_ui()
+        # Create login window
+        self.login_window = None
         
-    def setup_ui(self):
-        """Setup the user interface"""
+        # Load saved token and validate
+        self.load_and_validate_token()
+        
+        self.setup_main_ui()
+    
+    def open_login_window(self):
+        """Open login window"""
+        if self.login_window is None or not self.login_window.winfo_exists():
+            self.login_window = tk.Toplevel(self.root)
+            self.login_window.title("RegMail API Login")
+            self.login_window.geometry("400x500")
+            self.login_window.configure(bg='#f0f0f0')
+            self.login_window.transient(self.root)
+            self.login_window.grab_set()
+            
+            self.setup_login_window()
+        else:
+            self.login_window.lift()
+    
+    def setup_login_window(self):
+        """Setup login window interface"""
         # Main frame
-        main_frame = ttk.Frame(self.root, padding="10")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        
-        # Configure grid weights
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(0, weight=1)
-        main_frame.columnconfigure(1, weight=1)
+        main_frame = ttk.Frame(self.login_window, padding="10")
+        main_frame.pack(fill=tk.BOTH, expand=True)
         
         # Title
-        title_label = ttk.Label(main_frame, text="RegMail API Tester", 
-                               font=('Arial', 16, 'bold'))
-        title_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
+        title_label = ttk.Label(main_frame, text="RegMail API Login", 
+                               font=('Arial', 14, 'bold'))
+        title_label.pack(pady=(0, 20))
         
-        # Login Section
-        login_frame = ttk.LabelFrame(main_frame, text="Login", padding="10")
-        login_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
-        login_frame.columnconfigure(1, weight=1)
+        # Login form
+        login_frame = ttk.LabelFrame(main_frame, text="Login Credentials", padding="10")
+        login_frame.pack(fill=tk.X, pady=(0, 10))
         
         # Username
         ttk.Label(login_frame, text="Username:").grid(row=0, column=0, sticky=tk.W, pady=2)
@@ -68,7 +91,7 @@ class RegMailAPITester:
         
         # Device Name
         ttk.Label(login_frame, text="Device Name:").grid(row=2, column=0, sticky=tk.W, pady=2)
-        self.device_name_var = tk.StringVar(value="Test Device")
+        self.device_name_var = tk.StringVar(value="Python GUI Client")
         device_name_entry = ttk.Entry(login_frame, textvariable=self.device_name_var, width=30)
         device_name_entry.grid(row=2, column=1, sticky=(tk.W, tk.E), pady=2, padx=(10, 0))
         
@@ -78,7 +101,7 @@ class RegMailAPITester:
         fingerprint_frame.grid(row=3, column=1, sticky=(tk.W, tk.E), pady=2, padx=(10, 0))
         fingerprint_frame.columnconfigure(0, weight=1)
         
-        self.device_fingerprint_var = tk.StringVar()
+        self.device_fingerprint_var = tk.StringVar(value=self.generate_device_fingerprint())
         fingerprint_entry = ttk.Entry(fingerprint_frame, textvariable=self.device_fingerprint_var, width=25)
         fingerprint_entry.grid(row=0, column=0, sticky=(tk.W, tk.E))
         
@@ -95,18 +118,134 @@ class RegMailAPITester:
         ttk.Button(button_frame, text="Login", 
                   command=self.login).pack(side=tk.LEFT)
         
+        # Response log
+        log_frame = ttk.LabelFrame(main_frame, text="Response Log", padding="10")
+        log_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
+        
+        self.response_text = scrolledtext.ScrolledText(log_frame, height=10, width=50)
+        self.response_text.pack(fill=tk.BOTH, expand=True)
+        
+        # Close button
+        ttk.Button(main_frame, text="Close", 
+                  command=self.login_window.destroy).pack(pady=(10, 0))
+    
+    def save_token(self, token_data):
+        """Save token to keyring"""
+        try:
+            keyring.set_password(self.keyring_service, "token", token_data['token'])
+            keyring.set_password(self.keyring_service, "username", token_data['username'])
+            keyring.set_password(self.keyring_service, "login_time", token_data['login_time'])
+            self.log_response("Token saved to keyring successfully")
+        except Exception as e:
+            self.log_response(f"Failed to save token: {str(e)}")
+    
+    def load_token(self):
+        """Load token from keyring"""
+        try:
+            token = keyring.get_password(self.keyring_service, "token")
+            username = keyring.get_password(self.keyring_service, "username")
+            login_time = keyring.get_password(self.keyring_service, "login_time")
+            
+            if token and username and login_time:
+                return {
+                    'token': token,
+                    'username': username,
+                    'login_time': login_time
+                }
+        except Exception as e:
+            self.log_response(f"Failed to load token: {str(e)}")
+        return None
+    
+    def load_and_validate_token(self):
+        """Load saved token and validate it"""
+        token_data = self.load_token()
+        if token_data and 'token' in token_data:
+            self.jwt_token = token_data['token']
+            self.log_response("Loaded saved token, validating...")
+            # Validate token in background
+            self.root.after(1000, self.validate_saved_token)
+    
+    def validate_saved_token(self):
+        """Validate the saved token"""
+        if not self.jwt_token:
+            return
+            
+        try:
+            response = self.session.get(
+                f"{self.api_base_url}/auth/validate",
+                headers={'Authorization': f'Bearer {self.jwt_token}'},
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('success'):
+                    self.log_response("✅ Token is valid! Auto-logged in.")
+                    # Update token display
+                    if hasattr(self, 'token_var'):
+                        self.token_var.set(self.jwt_token[:50] + "..." if len(self.jwt_token) > 50 else self.jwt_token)
+                else:
+                    self.log_response("❌ Token is invalid, please login again")
+                    self.jwt_token = None
+            else:
+                self.log_response(f"❌ Token validation failed: {response.status_code}")
+                self.jwt_token = None
+                
+        except Exception as e:
+            self.log_response(f"❌ Token validation error: {str(e)}")
+            self.jwt_token = None
+    
+    def update_main_window_after_login(self):
+        """Update main window after successful login"""
+        if self.jwt_token:
+            self.login_status_var.set("Logged in")
+            self.login_status_label.config(foreground="green")
+            self.token_var.set(self.jwt_token[:50] + "..." if len(self.jwt_token) > 50 else self.jwt_token)
+            self.login_btn.config(text="Re-login", command=self.open_login_window)
+        
+    def setup_main_ui(self):
+        """Setup the main window interface"""
+        # Main frame
+        main_frame = ttk.Frame(self.root, padding="10")
+        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        # Configure grid weights
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(0, weight=1)
+        main_frame.columnconfigure(1, weight=1)
+        
+        # Title
+        title_label = ttk.Label(main_frame, text="RegMail API Tester - Main Window", 
+                               font=('Arial', 16, 'bold'))
+        title_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
+        
+        # Login Section
+        login_frame = ttk.LabelFrame(main_frame, text="Authentication", padding="10")
+        login_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        login_frame.columnconfigure(1, weight=1)
+        
+        # Login status
+        ttk.Label(login_frame, text="Status:").grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
+        self.login_status_var = tk.StringVar(value="Not logged in")
+        self.login_status_label = ttk.Label(login_frame, textvariable=self.login_status_var, 
+                                          foreground="red", font=('Arial', 10, 'bold'))
+        self.login_status_label.grid(row=0, column=1, sticky=tk.W, padx=(0, 10))
+        
+        # Login button
+        self.login_btn = ttk.Button(login_frame, text="Open Login Window", 
+                                   command=self.open_login_window)
+        self.login_btn.grid(row=0, column=2, padx=(10, 0))
+        
         # Token display
-        token_frame = ttk.LabelFrame(main_frame, text="JWT Token", padding="10")
-        token_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
-        token_frame.columnconfigure(0, weight=1)
+        ttk.Label(login_frame, text="Token:").grid(row=1, column=0, sticky=tk.W, pady=2)
+        self.token_var = tk.StringVar(value="No token")
+        token_entry = ttk.Entry(login_frame, textvariable=self.token_var, width=50, state="readonly")
+        token_entry.grid(row=1, column=1, sticky=(tk.W, tk.E), pady=2, padx=(10, 0))
         
-        self.token_var = tk.StringVar()
-        token_entry = ttk.Entry(token_frame, textvariable=self.token_var, state="readonly", width=50)
-        token_entry.grid(row=0, column=0, sticky=(tk.W, tk.E))
+        # API Testing Section
+        api_frame = ttk.LabelFrame(main_frame, text="API Testing", padding="10")
+        api_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
         
-        # Copy token button
-        ttk.Button(token_frame, text="Copy Token", 
-                  command=self.copy_token).grid(row=0, column=1, padx=(10, 0))
         
         # Test API Section
         test_frame = ttk.LabelFrame(main_frame, text="Test API Endpoints", padding="10")
@@ -260,8 +399,25 @@ class RegMailAPITester:
                 if data.get('success') and 'data' in data and 'token' in data['data']:
                     self.jwt_token = data['data']['token']
                     self.token_var.set(self.jwt_token[:50] + "..." if len(self.jwt_token) > 50 else self.jwt_token)
+                    
+                    # Save token to file
+                    token_data = {
+                        'token': self.jwt_token,
+                        'login_time': datetime.now().isoformat(),
+                        'username': self.username_var.get()
+                    }
+                    self.save_token(token_data)
+                    
                     self.log_response("✅ Login successful! Token saved.")
                     messagebox.showinfo("Success", "Login successful! Token saved.")
+                    
+                    # Update main window
+                    self.update_main_window_after_login()
+                    
+                    # Close login window
+                    if self.login_window:
+                        self.login_window.destroy()
+                        self.login_window = None
                 else:
                     self.log_response("❌ Login failed: Invalid response format")
                     messagebox.showerror("Error", "Login failed: Invalid response format")
@@ -332,16 +488,15 @@ class RegMailAPITester:
 
 def main():
     """Main function to run the application"""
-    root = tk.Tk()
-    app = RegMailAPITester(root)
+    app = RegMailAPITester()
     
     # Center the window
-    root.update_idletasks()
-    x = (root.winfo_screenwidth() // 2) - (root.winfo_width() // 2)
-    y = (root.winfo_screenheight() // 2) - (root.winfo_height() // 2)
-    root.geometry(f"+{x}+{y}")
+    app.root.update_idletasks()
+    x = (app.root.winfo_screenwidth() // 2) - (app.root.winfo_width() // 2)
+    y = (app.root.winfo_screenheight() // 2) - (app.root.winfo_height() // 2)
+    app.root.geometry(f"+{x}+{y}")
     
-    root.mainloop()
+    app.root.mainloop()
 
 
 if __name__ == "__main__":
