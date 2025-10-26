@@ -97,7 +97,7 @@ class EmailSubmissionController extends Controller
             // Validate request
             $validator = Validator::make($request->all(), [
                 'email' => 'required|email|max:255',
-                'recovery_email' => 'nullable|email|max:255',
+                'recovery_email' => 'nullable|string|max:255',
                 'password' => 'required|string|min:8|max:255',
                 'registration_time' => 'nullable|integer|min:0',
                 'device_fingerprint' => 'required|string|max:255',
