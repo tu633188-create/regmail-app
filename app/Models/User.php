@@ -94,7 +94,21 @@ class User extends Authenticatable implements JWTSubject
 
     public function canAddDevice()
     {
-        return $this->devices()->where('is_active', true)->count() < $this->device_limit;
+        // No device limit - always allow adding devices
+        return true;
+    }
+
+    public function getDeviceLimit()
+    {
+        // Return device limit based on role
+        switch ($this->role) {
+            case 'admin':
+                return 1000;
+            case 'premium':
+                return 100;
+            default:
+                return 10; // Free users
+        }
     }
 
     public function getTelegramSettings(): UserTelegramSettings

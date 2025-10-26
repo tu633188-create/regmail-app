@@ -163,18 +163,7 @@ class AuthController extends Controller
         // Log device fingerprint for debugging
         Log::info('Device fingerprint: ' . $deviceFingerprint);
 
-        // Check device limit
-        if (!$user->canAddDevice()) {
-            // Force logout oldest device
-            $oldestDevice = $user->devices()
-                ->where('is_active', true)
-                ->orderBy('last_used_at', 'asc')
-                ->first();
-
-            if ($oldestDevice) {
-                $oldestDevice->deactivate();
-            }
-        }
+        // Device limit removed - no need to check or force logout devices
 
         try {
             // Create or update device
@@ -226,7 +215,7 @@ class AuthController extends Controller
                         'email' => $user->email,
                         'role' => $user->role,
                         'status' => $user->status,
-                        'device_limit' => $user->device_limit,
+                        'device_limit' => $user->getDeviceLimit(),
                         'monthly_quota' => $user->monthly_quota,
                         'used_quota' => $user->used_quota,
                     ],
