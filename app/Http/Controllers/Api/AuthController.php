@@ -35,6 +35,14 @@ use Illuminate\Support\Str;
  *     scheme="bearer",
  *     bearerFormat="JWT"
  * )
+ * @OA\Parameter(
+ *     parameter="ApiVersion",
+ *     name="X-API-Version",
+ *     in="header",
+ *     required=true,
+ *     description="API Version",
+ *     @OA\Schema(type="string", example="1.0.0")
+ * )
  */
 class AuthController extends Controller
 {

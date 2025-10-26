@@ -30,6 +30,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | API Version Control
+    |--------------------------------------------------------------------------
+    |
+    | This value determines the API version and whether version checking is required.
+    | Set these in your ".env" file.
+    |
+    */
+
+    'api_version' => env('API_VERSION', '1.0.0'),
+    'api_version_required' => env('API_VERSION_REQUIRED', true),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Debug Mode
     |--------------------------------------------------------------------------
     |

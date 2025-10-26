@@ -25,7 +25,7 @@ class RegMailAPITester:
         self.root.configure(bg='#f0f0f0')
         
         # API Configuration
-        self.api_base_url = "https://trananhtu.vn/api"
+        self.api_base_url = "http://localhost:8000/api"
         self.jwt_token = None
         
         # Create session with retry strategy
@@ -163,7 +163,8 @@ class RegMailAPITester:
         session.headers.update({
             "User-Agent": "RegMail-API-Tester/1.0",
             "Accept": "application/json",
-            "Connection": "keep-alive"
+            "Connection": "keep-alive",
+            "X-API-Version": "1.0.0"
         })
         
         return session

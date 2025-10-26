@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'jwt.auth' => \App\Http\Middleware\JwtAuthentication::class,
             'force.https' => \App\Http\Middleware\ForceHttps::class,
+            'api.version' => \App\Http\Middleware\ApiVersionCheck::class,
         ]);
 
         // Force HTTPS for all routes in production
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->api(append: [
             \App\Http\Middleware\ForceHttps::class,
+            \App\Http\Middleware\ApiVersionCheck::class,
         ]);
 
         // Disable ValidatePathEncoding middleware that causes issues
