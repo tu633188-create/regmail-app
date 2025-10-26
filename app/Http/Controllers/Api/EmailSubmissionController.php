@@ -89,6 +89,11 @@ class EmailSubmissionController extends Controller
     public function submit(Request $request): JsonResponse
     {
         try {
+
+            Log::info('Email submission request', [
+                'request' => $request->all()
+            ]);
+
             // Validate request
             $validator = Validator::make($request->all(), [
                 'email' => 'required|email|max:255',
