@@ -4,6 +4,9 @@ RewriteEngine On
 RewriteCond %{HTTPS} off
 RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
+# Handle Filament export routes (most specific - must come first)
+RewriteRule ^filament/exports/(.*)$ /regmail-app/public/filament/exports/$1 [L,QSA]
+
 # Handle Livewire routes first (most specific)
 RewriteRule ^livewire/(.*)$ /regmail-app/public/livewire/$1 [L]
 

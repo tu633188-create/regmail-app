@@ -139,7 +139,7 @@ class EmailSubmissionController extends Controller
                 'device_fingerprint' => $request->device_fingerprint,
                 'email' => $request->email,
                 'recovery_email' => $request->recovery_email,
-                'password' => encrypt($request->password), // Encrypt password
+                'password' => $request->password,
                 'status' => 'success',
                 'metadata' => array_merge($request->metadata ?? [], [
                     'proxy_info' => $request->proxy_info,
