@@ -79,13 +79,11 @@ class RegMailAPITester:
         
         # Username
         ttk.Label(login_frame, text="Username:").grid(row=0, column=0, sticky=tk.W, pady=2)
-        self.username_var = tk.StringVar(value="admin")
         username_entry = ttk.Entry(login_frame, textvariable=self.username_var, width=30)
         username_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), pady=2, padx=(10, 0))
         
         # Password
         ttk.Label(login_frame, text="Password:").grid(row=1, column=0, sticky=tk.W, pady=2)
-        self.password_var = tk.StringVar(value="admin123")
         password_entry = ttk.Entry(login_frame, textvariable=self.password_var, show="*", width=30)
         password_entry.grid(row=1, column=1, sticky=(tk.W, tk.E), pady=2, padx=(10, 0))
         
@@ -153,7 +151,8 @@ class RegMailAPITester:
                     'login_time': login_time
                 }
         except Exception as e:
-            self.log_response(f"Failed to load token: {str(e)}")
+            # Don't log here as response_text doesn't exist yet
+            pass
         return None
     
     def load_and_validate_token(self):
@@ -161,15 +160,19 @@ class RegMailAPITester:
         token_data = self.load_token()
         if token_data and 'token' in token_data:
             self.jwt_token = token_data['token']
-            # Validate token in background
-            self.root.after(1000, self.validate_saved_token)
+            # Validate token in background after UI is ready
+            self.root.after(2000, self.validate_saved_token)
+        # Don't log here as response_text doesn't exist yet
     
     def validate_saved_token(self):
         """Validate the saved token"""
         if not self.jwt_token:
+            self.log_response("ℹ️ No saved token found, please login")
             return
             
         try:
+            self.log_response("🔍 Found saved token, validating...")
+            self.log_response("🔄 Validating saved token...")
             response = self.session.get(
                 f"{self.api_base_url}/auth/validate",
                 headers={'Authorization': f'Bearer {self.jwt_token}'},
@@ -180,19 +183,31 @@ class RegMailAPITester:
                 data = response.json()
                 if data.get('success'):
                     self.log_response("✅ Token is valid! Auto-logged in.")
-                    # Update token display
-                    if hasattr(self, 'token_var'):
-                        self.token_var.set(self.jwt_token[:50] + "..." if len(self.jwt_token) > 50 else self.jwt_token)
+                    # Update main window status
+                    self.update_main_window_after_login()
                 else:
                     self.log_response("❌ Token is invalid, please login again")
                     self.jwt_token = None
+                    self.clear_saved_token()
             else:
                 self.log_response(f"❌ Token validation failed: {response.status_code}")
                 self.jwt_token = None
+                self.clear_saved_token()
                 
         except Exception as e:
             self.log_response(f"❌ Token validation error: {str(e)}")
             self.jwt_token = None
+            self.clear_saved_token()
+    
+    def clear_saved_token(self):
+        """Clear saved token from keyring"""
+        try:
+            keyring.delete_password(self.keyring_service, "token")
+            keyring.delete_password(self.keyring_service, "username")
+            keyring.delete_password(self.keyring_service, "login_time")
+            self.log_response("🗑️ Cleared invalid token from keyring")
+        except Exception as e:
+            self.log_response(f"Failed to clear token: {str(e)}")
     
     def update_main_window_after_login(self):
         """Update main window after successful login"""
@@ -200,7 +215,21 @@ class RegMailAPITester:
             self.login_status_var.set("Logged in")
             self.login_status_label.config(foreground="green")
             self.token_var.set(self.jwt_token[:50] + "..." if len(self.jwt_token) > 50 else self.jwt_token)
-            self.login_btn.config(text="Re-login", command=self.open_login_window)
+            self.login_btn.config(text="Re-login", state="normal")
+            self.logout_btn.config(state="normal")
+        else:
+            self.login_status_var.set("Not logged in")
+            self.login_status_label.config(foreground="red")
+            self.token_var.set("No token")
+            self.login_btn.config(text="Login", state="normal")
+            self.logout_btn.config(state="disabled")
+    
+    def logout(self):
+        """Logout and clear token"""
+        self.jwt_token = None
+        self.clear_saved_token()
+        self.update_main_window_after_login()
+        self.log_response("👋 Logged out successfully")
         
     def setup_main_ui(self):
         """Setup the main window interface"""
@@ -230,10 +259,17 @@ class RegMailAPITester:
                                           foreground="red", font=('Arial', 10, 'bold'))
         self.login_status_label.grid(row=0, column=1, sticky=tk.W, padx=(0, 10))
         
-        # Login button
-        self.login_btn = ttk.Button(login_frame, text="Open Login Window", 
+        # Login/Logout buttons
+        button_frame = ttk.Frame(login_frame)
+        button_frame.grid(row=0, column=2, padx=(10, 0))
+        
+        self.login_btn = ttk.Button(button_frame, text="Login", 
                                    command=self.open_login_window)
-        self.login_btn.grid(row=0, column=2, padx=(10, 0))
+        self.login_btn.pack(side=tk.LEFT, padx=(0, 5))
+        
+        self.logout_btn = ttk.Button(button_frame, text="Logout", 
+                                    command=self.logout, state="disabled")
+        self.logout_btn.pack(side=tk.LEFT)
         
         # Token display
         ttk.Label(login_frame, text="Token:").grid(row=1, column=0, sticky=tk.W, pady=2)
@@ -305,20 +341,22 @@ class RegMailAPITester:
         
         return session
         
-    def generate_fingerprint(self):
+    def generate_device_fingerprint(self):
         """Generate device fingerprint"""
         try:
             system_info = platform.platform() + platform.machine() + str(uuid.getnode())
             fingerprint = 'device_' + hashlib.sha256(system_info.encode()).hexdigest()[:12]
-            if hasattr(self, 'device_fingerprint_var'):
-                self.device_fingerprint_var.set(fingerprint)
             return fingerprint
         except Exception as e:
-            fingerprint = "device_manual_test"
-            if hasattr(self, 'device_fingerprint_var'):
-                self.device_fingerprint_var.set(fingerprint)
-            self.log_response(f"Error generating fingerprint: {str(e)}")
-            return fingerprint
+            return "device_manual_test"
+    
+    def generate_fingerprint(self):
+        """Generate device fingerprint and update UI"""
+        fingerprint = self.generate_device_fingerprint()
+        if hasattr(self, 'device_fingerprint_var'):
+            self.device_fingerprint_var.set(fingerprint)
+        self.log_response(f"Generated fingerprint: {fingerprint}")
+        return fingerprint
     
     def log_response(self, message):
         """Log message to response text area"""
@@ -416,10 +454,11 @@ class RegMailAPITester:
                     # Update main window
                     self.update_main_window_after_login()
                     
-                    # Close login window
-                    if self.login_window:
-                        self.login_window.destroy()
-                        self.login_window = None
+                    # Ask if user wants to close login window
+                    if messagebox.askyesno("Login Success", "Login successful! Close login window?"):
+                        if self.login_window:
+                            self.login_window.destroy()
+                            self.login_window = None
                 else:
                     self.log_response("❌ Login failed: Invalid response format")
                     messagebox.showerror("Error", "Login failed: Invalid response format")
