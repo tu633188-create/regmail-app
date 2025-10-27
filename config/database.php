@@ -41,7 +41,7 @@ return [
             'journal_mode' => null,
             'synchronous' => null,
             'transaction_mode' => 'DEFERRED',
-            'timezone' => '+07:00',
+            // 'timezone' => '+07:00', // Commented out - causes Carbon error
         ],
 
         'mysql' => [
@@ -62,7 +62,7 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
-            'timezone' => '+07:00',
+            // 'timezone' => '+07:00', // Commented out - causes Carbon error
         ],
 
         'mariadb' => [
@@ -83,7 +83,7 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
-            'timezone' => '+07:00',
+            // 'timezone' => '+07:00', // Commented out - causes Carbon error
         ],
 
         'pgsql' => [
@@ -99,7 +99,7 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
-            'timezone' => '+07:00',
+            // 'timezone' => '+07:00', // Commented out - causes Carbon error
         ],
 
         'sqlsrv' => [
