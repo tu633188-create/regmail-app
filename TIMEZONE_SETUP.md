@@ -4,15 +4,15 @@
 
 ### 1. Application Timezone
 - **File**: `config/app.php`
-- **Setting**: `'timezone' => 'Asia/Ho_Chi_Minh'`
+- **Setting**: `'timezone' => '+07:00'`
 
 ### 2. Database Timezone
 - **File**: `config/database.php`
 - **Settings**: 
-  - SQLite: `'timezone' => 'Asia/Ho_Chi_Minh'`
-  - MySQL: `'timezone' => 'Asia/Ho_Chi_Minh'`
-  - MariaDB: `'timezone' => 'Asia/Ho_Chi_Minh'`
-  - PostgreSQL: `'timezone' => 'Asia/Ho_Chi_Minh'`
+  - SQLite: `'timezone' => '+07:00'`
+  - MySQL: `'timezone' => '+07:00'`
+  - MariaDB: `'timezone' => '+07:00'`
+  - PostgreSQL: `'timezone' => '+07:00'`
 
 ## Trên Server (cPanel/Hosting):
 
@@ -31,6 +31,8 @@ date.timezone = "Asia/Ho_Chi_Minh"
 ### 3. Database Timezone (nếu dùng MySQL)
 ```sql
 SET time_zone = '+07:00';
+-- Hoặc nếu server hỗ trợ:
+SET time_zone = 'Asia/Ho_Chi_Minh';
 ```
 
 ## Kiểm tra timezone:
