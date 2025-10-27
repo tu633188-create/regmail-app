@@ -4,7 +4,7 @@
 
 ### 1. Application Timezone
 - **File**: `config/app.php`
-- **Setting**: `'timezone' => '+07:00'`
+- **Setting**: `'timezone' => 'Asia/Ho_Chi_Minh'` (PHP timezone name)
 
 ### 2. Database Timezone
 - **File**: `config/database.php`
