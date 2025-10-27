@@ -41,7 +41,7 @@ return [
             'journal_mode' => null,
             'synchronous' => null,
             'transaction_mode' => 'DEFERRED',
-            'timezone' => 'Asia/Ho_Chi_Minh',
+            'timezone' => '+07:00',
         ],
 
         'mysql' => [
@@ -62,7 +62,7 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
-            'timezone' => 'Asia/Ho_Chi_Minh',
+            'timezone' => '+07:00',
         ],
 
         'mariadb' => [
@@ -83,7 +83,7 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
-            'timezone' => 'Asia/Ho_Chi_Minh',
+            'timezone' => '+07:00',
         ],
 
         'pgsql' => [
@@ -99,7 +99,7 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
-            'timezone' => 'Asia/Ho_Chi_Minh',
+            'timezone' => '+07:00',
         ],
 
         'sqlsrv' => [

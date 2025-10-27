@@ -161,7 +161,6 @@ class RegMailAPITester:
         token_data = self.load_token()
         if token_data and 'token' in token_data:
             self.jwt_token = token_data['token']
-            self.log_response("Loaded saved token, validating...")
             # Validate token in background
             self.root.after(1000, self.validate_saved_token)
     
@@ -279,8 +278,6 @@ class RegMailAPITester:
         ttk.Button(response_frame, text="Clear", 
                   command=self.clear_response).grid(row=1, column=0, pady=(10, 0))
         
-        # Auto-generate fingerprint on startup
-        self.generate_fingerprint()
     
     def create_session(self):
         """Create requests session with retry strategy"""
@@ -313,10 +310,15 @@ class RegMailAPITester:
         try:
             system_info = platform.platform() + platform.machine() + str(uuid.getnode())
             fingerprint = 'device_' + hashlib.sha256(system_info.encode()).hexdigest()[:12]
-            self.device_fingerprint_var.set(fingerprint)
+            if hasattr(self, 'device_fingerprint_var'):
+                self.device_fingerprint_var.set(fingerprint)
+            return fingerprint
         except Exception as e:
-            self.device_fingerprint_var.set("device_manual_test")
+            fingerprint = "device_manual_test"
+            if hasattr(self, 'device_fingerprint_var'):
+                self.device_fingerprint_var.set(fingerprint)
             self.log_response(f"Error generating fingerprint: {str(e)}")
+            return fingerprint
     
     def log_response(self, message):
         """Log message to response text area"""
