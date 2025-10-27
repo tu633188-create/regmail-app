@@ -166,11 +166,13 @@ class AuthController extends Controller
         // Device limit removed - no need to check or force logout devices
 
         try {
-            // Create or update device
+            // Create or update device (allow multiple devices per user)
             $device = UserDevice::updateOrCreate(
-                ['device_fingerprint' => $deviceFingerprint],
                 [
-                    'user_id' => $user->id,
+                    'device_fingerprint' => $deviceFingerprint,
+                    'user_id' => $user->id
+                ],
+                [
                     'device_name' => $request->input('device_name') ?: 'Unnamed Device',
                     'device_type' => $this->detectDeviceType($request),
                     'os' => $this->detectOS($request),
@@ -190,7 +192,7 @@ class AuthController extends Controller
             $payload = JWTAuth::getPayload();
             $tokenId = $payload->get('jti');
 
-            // Store token in database
+            // Store token in database (allow multiple tokens per user)
             JwtToken::create([
                 'user_id' => $user->id,
                 'token_id' => $tokenId,
