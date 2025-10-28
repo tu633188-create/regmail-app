@@ -220,7 +220,9 @@ class RegistrationResource extends Resource
                             return sprintf('%ds', $remainingSeconds);
                         }
                     })
-                    ->sortable()
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderByRaw("JSON_EXTRACT(metadata, '$.registration_time_seconds') {$direction}");
+                    })
                     ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('proxy_ip')
