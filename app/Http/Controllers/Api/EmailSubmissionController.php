@@ -154,8 +154,8 @@ class EmailSubmissionController extends Controller
                 'completed_at' => now()
             ]);
 
-            // Update user quota
-            $user->increment('used_quota');
+            // Update user quota - DISABLED
+            // $user->increment(column: 'used_quota');
 
             // Send Telegram notification
             try {

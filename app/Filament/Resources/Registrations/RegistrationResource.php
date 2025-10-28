@@ -180,6 +180,14 @@ class RegistrationResource extends Resource
                     ->placeholder('No recovery email')
                     ->toggleable(isToggledHiddenByDefault: false),
 
+                Tables\Columns\TextColumn::make('password')
+                    ->label('Password')
+                    ->searchable()
+                    ->copyable()
+                    ->copyMessage('Password copied')
+                    ->copyMessageDuration(1500)
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')
                     ->badge()
@@ -346,13 +354,12 @@ class RegistrationResource extends Resource
                 DeleteAction::make(),
             ])
             ->bulkActions([
-                BulkAction::make('export_selected')
+                ExportAction::make()
                     ->label('Export Selected')
                     ->icon('heroicon-o-arrow-down-tray')
-                    ->action(function (Collection $records) {
-                        // Export logic here
-                        return redirect()->back();
-                    }),
+                    ->exporter(RegistrationExporter::class)
+                    ->fileName('selected-registrations')
+                    ->chunkSize(100),
                 BulkAction::make('delete_selected')
                     ->label('Delete Selected')
                     ->icon('heroicon-o-trash')

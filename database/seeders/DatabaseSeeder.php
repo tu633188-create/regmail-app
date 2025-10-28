@@ -17,5 +17,8 @@ class DatabaseSeeder extends Seeder
     {
         // Run AdminUserSeeder
         $this->call(AdminUserSeeder::class);
+        
+        // Run RegistrationTestSeeder for test data
+        $this->call(RegistrationTestSeeder::class);
     }
 }
