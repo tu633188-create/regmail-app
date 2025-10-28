@@ -154,6 +154,23 @@ class UserDeviceResource extends Resource
                     ->sortable()
                     ->placeholder('Never'),
 
+                Tables\Columns\TextColumn::make('last_email_submission')
+                    ->label('Last Email Submission')
+                    ->getStateUsing(function (UserDevice $record): string {
+                        $lastRegistration = \App\Models\Registration::where('device_fingerprint', $record->device_fingerprint)
+                            ->where('user_id', $record->user_id)
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+                        
+                        if (!$lastRegistration) {
+                            return 'Never';
+                        }
+                        
+                        return $lastRegistration->created_at->format('Y-m-d H:i:s');
+                    })
+                    ->sortable()
+                    ->placeholder('Never'),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Registered At')
                     ->dateTime()
@@ -199,6 +216,29 @@ class UserDeviceResource extends Resource
                                 $data['last_used_until'],
                                 fn(Builder $query, $date): Builder => $query->whereDate('last_used_at', '<=', $date),
                             );
+                    }),
+
+                Filter::make('last_email_submission')
+                    ->form([
+                        DatePicker::make('submission_from')
+                            ->label('Last Submission From'),
+                        DatePicker::make('submission_until')
+                            ->label('Last Submission Until'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when(
+                            $data['submission_from'] || $data['submission_until'],
+                            function (Builder $query) use ($data) {
+                                $query->whereHas('registrations', function (Builder $registrationQuery) use ($data) {
+                                    if ($data['submission_from']) {
+                                        $registrationQuery->whereDate('created_at', '>=', $data['submission_from']);
+                                    }
+                                    if ($data['submission_until']) {
+                                        $registrationQuery->whereDate('created_at', '<=', $data['submission_until']);
+                                    }
+                                });
+                            }
+                        );
                     }),
             ])
             ->actions([
