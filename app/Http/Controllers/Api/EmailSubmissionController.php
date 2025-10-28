@@ -99,7 +99,7 @@ class EmailSubmissionController extends Controller
                 'email' => 'required|email|max:255',
                 'recovery_email' => 'nullable|string|max:255',
                 'password' => 'required|string|min:8|max:255',
-                'registration_time' => 'nullable|integer|min:0',
+                'registration_time' => 'nullable|integer',
                 'device_fingerprint' => 'required|string|max:255',
                 'proxy_info' => 'nullable|array',
                 'proxy_info.ip' => 'required_with:proxy_info|ip',
@@ -124,6 +124,11 @@ class EmailSubmissionController extends Controller
 
             // Get registration time in seconds from request or use 0
             $registrationTimeSeconds = $request->input('registration_time', 0);
+
+            // Reset negative values to 0
+            if ($registrationTimeSeconds < 0) {
+                $registrationTimeSeconds = 0;
+            }
 
             // Calculate actual registration time (current time - registration_time_seconds)
             $registrationTime = now()->subSeconds($registrationTimeSeconds);
