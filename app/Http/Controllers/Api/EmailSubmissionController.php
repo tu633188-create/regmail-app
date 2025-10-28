@@ -110,6 +110,9 @@ class EmailSubmissionController extends Controller
             ]);
 
             if ($validator->fails()) {
+                Log::error('Validation error', [
+                    'errors' => $validator->errors()
+                ]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation error',
@@ -153,9 +156,6 @@ class EmailSubmissionController extends Controller
                 'started_at' => $registrationTime,
                 'completed_at' => now()
             ]);
-
-            // Update user quota - DISABLED
-            // $user->increment(column: 'used_quota');
 
             // Send Telegram notification
             try {
