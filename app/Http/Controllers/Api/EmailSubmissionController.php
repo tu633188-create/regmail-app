@@ -122,14 +122,6 @@ class EmailSubmissionController extends Controller
 
             $user = $request->user();
 
-            // Check if user has remaining quota
-            if ($user->used_quota >= $user->monthly_quota) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Monthly quota exceeded'
-                ], 403);
-            }
-
             // Get registration time in seconds from request or use 0
             $registrationTimeSeconds = $request->input('registration_time', 0);
 
