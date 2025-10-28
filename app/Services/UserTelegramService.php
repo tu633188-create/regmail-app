@@ -123,7 +123,7 @@ class UserTelegramService
             $message .= "⏱️ Time: <code>{$hours}h {$minutes}m {$seconds}s</code>\n";
         }
 
-        $message .= "⏰ Completed: " . now()->format('Y-m-d H:i:s');
+        $message .= "⏰ Completed: " . now()->format(format: 'Y-m-d H:i:s');
 
         return $message;
     }
