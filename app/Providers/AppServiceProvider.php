@@ -27,8 +27,7 @@ class AppServiceProvider extends ServiceProvider
                 $name,
                 Auth::createUserProvider($config['provider']),
                 $app['session.store'],
-                $app['request'],
-                $app['cookie']
+                $app['request']
             );
         });
     }
