@@ -25,10 +25,6 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'status',
         'role',
-        'device_limit',
-        'monthly_quota',
-        'used_quota',
-        'quota_reset_at',
     ];
 
     /**
@@ -51,7 +47,6 @@ class User extends Authenticatable implements JWTSubject
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'quota_reset_at' => 'datetime',
         ];
     }
 
@@ -87,11 +82,6 @@ class User extends Authenticatable implements JWTSubject
         return $this->role === 'admin';
     }
 
-    public function hasQuota()
-    {
-        return $this->used_quota < $this->monthly_quota;
-    }
-
     public function canAddDevice()
     {
         // No device limit - always allow adding devices
@@ -117,7 +107,6 @@ class User extends Authenticatable implements JWTSubject
             'telegram_enabled' => false,
             'registration_notifications' => false,
             'error_notifications' => false,
-            'quota_notifications' => false,
             'daily_summary' => false,
         ]);
     }
@@ -143,7 +132,6 @@ class User extends Authenticatable implements JWTSubject
         return [
             'role' => $this->role,
             'status' => $this->status,
-            'device_limit' => $this->device_limit,
         ];
     }
 }

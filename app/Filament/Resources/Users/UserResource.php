@@ -68,19 +68,6 @@ class UserResource extends Resource
                         'banned' => 'Banned',
                     ])
                     ->required(),
-                \Filament\Forms\Components\TextInput::make('device_limit')
-                    ->numeric()
-                    ->default(1)
-                    ->minValue(1)
-                    ->maxValue(1000),
-                \Filament\Forms\Components\TextInput::make('monthly_quota')
-                    ->numeric()
-                    ->default(10)
-                    ->minValue(1),
-                \Filament\Forms\Components\TextInput::make('used_quota')
-                    ->numeric()
-                    ->default(0)
-                    ->minValue(0),
             ]);
     }
 
@@ -113,12 +100,6 @@ class UserResource extends Resource
                         'warning' => 'suspended',
                         'danger' => 'banned',
                     ]),
-                TextColumn::make('device_limit')
-                    ->label('Device Limit'),
-                TextColumn::make('monthly_quota')
-                    ->label('Monthly Quota'),
-                TextColumn::make('used_quota')
-                    ->label('Used Quota'),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

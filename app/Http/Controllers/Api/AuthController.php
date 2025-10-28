@@ -78,9 +78,7 @@ class AuthController extends Controller
      *                     @OA\Property(property="email", type="string"),
      *                     @OA\Property(property="role", type="string"),
      *                     @OA\Property(property="status", type="string"),
-     *                     @OA\Property(property="device_limit", type="integer"),
-     *                     @OA\Property(property="monthly_quota", type="integer"),
-     *                     @OA\Property(property="used_quota", type="integer")
+     *                     @OA\Property(property="device_limit", type="integer")
      *                 ),
      *                 @OA\Property(property="device", type="object",
      *                     @OA\Property(property="id", type="string"),
@@ -218,8 +216,6 @@ class AuthController extends Controller
                         'role' => $user->role,
                         'status' => $user->status,
                         'device_limit' => $user->getDeviceLimit(),
-                        'monthly_quota' => $user->monthly_quota,
-                        'used_quota' => $user->used_quota,
                     ],
                     'device' => [
                         'id' => $device->device_fingerprint,

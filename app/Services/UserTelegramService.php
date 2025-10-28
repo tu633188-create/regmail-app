@@ -69,20 +69,6 @@ class UserTelegramService
         return $this->sendMessage($message);
     }
 
-    public function sendQuotaNotification(int $used, int $total): bool
-    {
-        if (!$this->settings->quota_notifications) {
-            return false;
-        }
-
-        $percentage = round(($used / $total) * 100);
-        $message = "⚠️ <b>Quota Warning</b>\n\n";
-        $message .= "📊 Used: <b>{$used}/{$total}</b> ({$percentage}%)\n";
-        $message .= "⏰ Time: " . now()->format('Y-m-d H:i:s');
-
-        return $this->sendMessage($message);
-    }
-
     public function sendDailySummary(array $stats): bool
     {
         if (!$this->settings->daily_summary) {
