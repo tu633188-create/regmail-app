@@ -133,8 +133,66 @@ class UserDeviceResource extends Resource
 
                         return $lastRegistration->created_at->format('Y-m-d H:i:s');
                     })
-                    ->sortable()
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->addSelect([
+                            'last_email_submission' => \App\Models\Registration::selectRaw('MAX(created_at)')
+                                ->whereColumn('device_fingerprint', 'user_devices.device_fingerprint')
+                                ->whereColumn('user_id', 'user_devices.user_id')
+                        ])
+                            ->orderBy('last_email_submission', $direction);
+                    })
                     ->placeholder('Never')
+                    ->toggleable(isToggledHiddenByDefault: false),
+
+                Tables\Columns\TextColumn::make('total_emails_24h')
+                    ->label('Emails (24h)')
+                    ->getStateUsing(function (UserDevice $record): int {
+                        return \App\Models\Registration::where('device_fingerprint', $record->device_fingerprint)
+                            ->where('user_id', $record->user_id)
+                            ->where('created_at', '>=', now()->subDay())
+                            ->count();
+                    })
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->addSelect([
+                            'total_emails_24h' => \App\Models\Registration::selectRaw('COUNT(*)')
+                                ->whereColumn('device_fingerprint', 'user_devices.device_fingerprint')
+                                ->whereColumn('user_id', 'user_devices.user_id')
+                                ->where('created_at', '>=', now()->subDay())
+                        ])
+                            ->orderBy('total_emails_24h', $direction);
+                    })
+                    ->badge()
+                    ->color(fn(int $state): string => match (true) {
+                        $state >= 10 => 'success',
+                        $state >= 5 => 'warning',
+                        $state > 0 => 'info',
+                        default => 'gray',
+                    })
+                    ->toggleable(isToggledHiddenByDefault: false),
+
+                Tables\Columns\TextColumn::make('total_emails_all_time')
+                    ->label('Total Emails')
+                    ->getStateUsing(function (UserDevice $record): int {
+                        return \App\Models\Registration::where('device_fingerprint', $record->device_fingerprint)
+                            ->where('user_id', $record->user_id)
+                            ->count();
+                    })
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->addSelect([
+                            'total_emails_all_time' => \App\Models\Registration::selectRaw('COUNT(*)')
+                                ->whereColumn('device_fingerprint', 'user_devices.device_fingerprint')
+                                ->whereColumn('user_id', 'user_devices.user_id')
+                        ])
+                            ->orderBy('total_emails_all_time', $direction);
+                    })
+                    ->badge()
+                    ->color(fn(int $state): string => match (true) {
+                        $state >= 100 => 'success',
+                        $state >= 50 => 'warning',
+                        $state >= 10 => 'info',
+                        $state > 0 => 'gray',
+                        default => 'danger',
+                    })
                     ->toggleable(isToggledHiddenByDefault: false),
 
 
@@ -250,6 +308,62 @@ class UserDeviceResource extends Resource
                             }
                         );
                     }),
+
+                Filter::make('email_count_24h')
+                    ->form([
+                        Forms\Components\TextInput::make('emails_24h_min')
+                            ->label('Min Emails (24h)')
+                            ->numeric()
+                            ->minValue(0),
+                        Forms\Components\TextInput::make('emails_24h_max')
+                            ->label('Max Emails (24h)')
+                            ->numeric()
+                            ->minValue(0),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when(
+                            $data['emails_24h_min'] || $data['emails_24h_max'],
+                            function (Builder $query) use ($data) {
+                                $query->whereHas('registrations', function (Builder $registrationQuery) use ($data) {
+                                    $registrationQuery->where('created_at', '>=', now()->subDay());
+
+                                    if ($data['emails_24h_min']) {
+                                        $registrationQuery->havingRaw('COUNT(*) >= ?', [$data['emails_24h_min']]);
+                                    }
+                                    if ($data['emails_24h_max']) {
+                                        $registrationQuery->havingRaw('COUNT(*) <= ?', [$data['emails_24h_max']]);
+                                    }
+                                });
+                            }
+                        );
+                    }),
+
+                Filter::make('total_email_count')
+                    ->form([
+                        Forms\Components\TextInput::make('total_emails_min')
+                            ->label('Min Total Emails')
+                            ->numeric()
+                            ->minValue(0),
+                        Forms\Components\TextInput::make('total_emails_max')
+                            ->label('Max Total Emails')
+                            ->numeric()
+                            ->minValue(0),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when(
+                            $data['total_emails_min'] || $data['total_emails_max'],
+                            function (Builder $query) use ($data) {
+                                $query->whereHas('registrations', function (Builder $registrationQuery) use ($data) {
+                                    if ($data['total_emails_min']) {
+                                        $registrationQuery->havingRaw('COUNT(*) >= ?', [$data['total_emails_min']]);
+                                    }
+                                    if ($data['total_emails_max']) {
+                                        $registrationQuery->havingRaw('COUNT(*) <= ?', [$data['total_emails_max']]);
+                                    }
+                                });
+                            }
+                        );
+                    }),
             ])
             ->actions([
                 ViewAction::make(),
@@ -265,6 +379,34 @@ class UserDeviceResource extends Resource
                     ->action(function (Collection $records) {
                         $records->each->update(['is_active' => false]);
                     }),
+
+                BulkAction::make('activate_selected')
+                    ->label('Activate Selected')
+                    ->icon('heroicon-o-check')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->action(function (Collection $records) {
+                        $records->each->update(['is_active' => true]);
+                    }),
+
+                BulkAction::make('deactivate_inactive_devices')
+                    ->label('Deactivate Inactive Devices (No emails in 7 days)')
+                    ->icon('heroicon-o-clock')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->action(function (Collection $records) {
+                        $records->each(function ($record) {
+                            $hasRecentEmails = \App\Models\Registration::where('device_fingerprint', $record->device_fingerprint)
+                                ->where('user_id', $record->user_id)
+                                ->where('created_at', '>=', now()->subDays(7))
+                                ->exists();
+
+                            if (!$hasRecentEmails) {
+                                $record->update(['is_active' => false]);
+                            }
+                        });
+                    }),
+
                 BulkAction::make('delete_selected')
                     ->label('Delete Selected')
                     ->icon('heroicon-o-trash')
