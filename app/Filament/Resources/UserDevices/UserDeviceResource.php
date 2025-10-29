@@ -116,7 +116,27 @@ class UserDeviceResource extends Resource
                     ->placeholder('Unnamed Device')
                     ->copyable()
                     ->copyMessage('Device name copied')
-                    ->copyMessageDuration(1500),
+                    ->copyMessageDuration(1500)
+                    ->toggleable(isToggledHiddenByDefault: false),
+
+                Tables\Columns\TextColumn::make('last_email_submission')
+                    ->label('Last Email Submission')
+                    ->getStateUsing(function (UserDevice $record): string {
+                        $lastRegistration = \App\Models\Registration::where('device_fingerprint', $record->device_fingerprint)
+                            ->where('user_id', $record->user_id)
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+
+                        if (!$lastRegistration) {
+                            return 'Never';
+                        }
+
+                        return $lastRegistration->created_at->format('Y-m-d H:i:s');
+                    })
+                    ->sortable()
+                    ->placeholder('Never')
+                    ->toggleable(isToggledHiddenByDefault: false),
+
 
                 Tables\Columns\TextColumn::make('device_type')
                     ->label('Type')
@@ -128,48 +148,38 @@ class UserDeviceResource extends Resource
                         'tablet' => 'gray',
                         'unknown' => 'danger',
                         default => 'gray',
-                    }),
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('os')
                     ->label('OS')
                     ->searchable()
-                    ->placeholder('Unknown'),
+                    ->placeholder('Unknown')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('browser')
                     ->label('Browser')
                     ->searchable()
-                    ->placeholder('Unknown'),
+                    ->placeholder('Unknown')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('ip_address')
                     ->label('IP Address')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('Active')
-                    ->boolean(),
+                    ->boolean()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('last_used_at')
                     ->label('Last Used')
                     ->dateTime()
                     ->sortable()
-                    ->placeholder('Never'),
+                    ->placeholder('Never')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('last_email_submission')
-                    ->label('Last Email Submission')
-                    ->getStateUsing(function (UserDevice $record): string {
-                        $lastRegistration = \App\Models\Registration::where('device_fingerprint', $record->device_fingerprint)
-                            ->where('user_id', $record->user_id)
-                            ->orderBy('created_at', 'desc')
-                            ->first();
-                        
-                        if (!$lastRegistration) {
-                            return 'Never';
-                        }
-                        
-                        return $lastRegistration->created_at->format('Y-m-d H:i:s');
-                    })
-                    ->sortable()
-                    ->placeholder('Never'),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Registered At')
