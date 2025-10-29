@@ -85,6 +85,34 @@ class UserTelegramService
         return $this->sendMessage($message);
     }
 
+    public function sendPeriodicSummary(array $stats, int $hours = 4): bool
+    {
+        if (!$this->settings->daily_summary) {
+            return false;
+        }
+
+        $message = "📊 <b>Periodic Summary ({$hours}h)</b>\n\n";
+
+        // Device statistics
+        if (!empty($stats['device_stats'])) {
+            $message .= "📱 <b>Device Statistics:</b>\n";
+            foreach ($stats['device_stats'] as $device) {
+                $deviceName = $device['device_name'] ?: 'Unnamed Device';
+                $message .= "• <code>{$deviceName}</code>: <b>{$device['registrations']}</b> emails\n";
+            }
+            $message .= "\n";
+        }
+
+        // Overall statistics
+        $message .= "📧 Total Registrations: <b>{$stats['registrations']}</b>\n";
+        $message .= "✅ Success: <b>{$stats['success']}</b>\n";
+        $message .= "❌ Failed: <b>{$stats['failed']}</b>\n";
+        $message .= "📈 Success Rate: <b>{$stats['success_rate']}%</b>\n";
+        $message .= "⏰ Period: " . now()->subHours($hours)->format('H:i') . " - " . now()->format('H:i');
+
+        return $this->sendMessage($message);
+    }
+
     private function getRegistrationMessage(string $email, string $status, int $registrationTime = null, string $deviceName = null): string
     {
         $templates = $this->settings->custom_templates ?? [];
