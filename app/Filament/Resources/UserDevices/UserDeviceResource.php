@@ -144,6 +144,32 @@ class UserDeviceResource extends Resource
                     ->placeholder('Never')
                     ->toggleable(isToggledHiddenByDefault: false),
 
+                Tables\Columns\TextColumn::make('total_emails_2h')
+                    ->label('Emails (2h)')
+                    ->getStateUsing(function (UserDevice $record): int {
+                        return \App\Models\Registration::where('device_fingerprint', $record->device_fingerprint)
+                            ->where('user_id', $record->user_id)
+                            ->where('created_at', '>=', now()->subHours(2))
+                            ->count();
+                    })
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->addSelect([
+                            'total_emails_2h' => \App\Models\Registration::selectRaw('COUNT(*)')
+                                ->whereColumn('device_fingerprint', 'user_devices.device_fingerprint')
+                                ->whereColumn('user_id', 'user_devices.user_id')
+                                ->where('created_at', '>=', now()->subHours(2))
+                        ])
+                            ->orderBy('total_emails_2h', $direction);
+                    })
+                    ->badge()
+                    ->color(fn(int $state): string => match (true) {
+                        $state >= 5 => 'success',
+                        $state >= 3 => 'warning',
+                        $state > 0 => 'info',
+                        default => 'gray',
+                    })
+                    ->toggleable(isToggledHiddenByDefault: false),
+
                 Tables\Columns\TextColumn::make('total_emails_24h')
                     ->label('Emails (24h)')
                     ->getStateUsing(function (UserDevice $record): int {
@@ -303,6 +329,35 @@ class UserDeviceResource extends Resource
                                     }
                                     if ($data['submission_until']) {
                                         $registrationQuery->whereDate('created_at', '<=', $data['submission_until']);
+                                    }
+                                });
+                            }
+                        );
+                    }),
+
+                Filter::make('email_count_2h')
+                    ->form([
+                        Forms\Components\TextInput::make('emails_2h_min')
+                            ->label('Min Emails (2h)')
+                            ->numeric()
+                            ->minValue(0),
+                        Forms\Components\TextInput::make('emails_2h_max')
+                            ->label('Max Emails (2h)')
+                            ->numeric()
+                            ->minValue(0),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when(
+                            $data['emails_2h_min'] || $data['emails_2h_max'],
+                            function (Builder $query) use ($data) {
+                                $query->whereHas('registrations', function (Builder $registrationQuery) use ($data) {
+                                    $registrationQuery->where('created_at', '>=', now()->subHours(2));
+
+                                    if ($data['emails_2h_min']) {
+                                        $registrationQuery->havingRaw('COUNT(*) >= ?', [$data['emails_2h_min']]);
+                                    }
+                                    if ($data['emails_2h_max']) {
+                                        $registrationQuery->havingRaw('COUNT(*) <= ?', [$data['emails_2h_max']]);
                                     }
                                 });
                             }
