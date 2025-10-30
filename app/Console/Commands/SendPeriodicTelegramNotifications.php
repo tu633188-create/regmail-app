@@ -14,7 +14,7 @@ class SendPeriodicTelegramNotifications extends Command
      *
      * @var string
      */
-    protected $signature = 'telegram:send-periodic {--hours=4 : Number of hours to check for stats}';
+    protected $signature = 'telegram:send-periodic {--hours=2 : Number of hours to check for stats}';
 
     /**
      * The console command description.

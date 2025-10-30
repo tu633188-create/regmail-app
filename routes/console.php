@@ -8,8 +8,8 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Schedule periodic Telegram notifications at specific times
-Schedule::command('telegram:send-periodic --hours=4')
-    ->cron('0 0,4,8,12,16,20 * * *') // Every 4 hours: 0:00, 4:00, 8:00, 12:00, 16:00, 20:00
+// Schedule periodic Telegram notifications every 2 hours
+Schedule::command('telegram:send-periodic --hours=2')
+    ->cron('0 */2 * * *') // Every 2 hours at minute 0
     ->withoutOverlapping()
     ->runInBackground();
