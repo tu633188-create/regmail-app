@@ -79,16 +79,26 @@ class SendPeriodicTelegramNotifications extends Command
         $deviceStats = [];
         $deviceRegistrations = $registrations->groupBy('device_fingerprint');
 
+        // Build map of fingerprint => registrations count for period
+        $fingerprintToCount = [];
         foreach ($deviceRegistrations as $deviceFingerprint => $deviceRegs) {
-            $device = $user->devices()
-                ->where('device_fingerprint', $deviceFingerprint)
-                ->first();
-
-            $deviceStats[] = [
-                'device_name' => $device ? $device->device_name : 'Unknown Device',
-                'registrations' => $deviceRegs->count(),
-            ];
+            $fingerprintToCount[$deviceFingerprint] = $deviceRegs->count();
         }
+
+        // Include ALL user's devices, even with 0 in this period
+        $userDevices = $user->devices()->get(['device_fingerprint', 'device_name']);
+        foreach ($userDevices as $dev) {
+            $count = $fingerprintToCount[$dev->device_fingerprint] ?? 0;
+            $deviceStats[] = [
+                'device_name' => $dev->device_name ?: 'Unknown Device',
+                'registrations' => $count,
+            ];
+            // Mark as consumed
+            unset($fingerprintToCount[$dev->device_fingerprint]);
+        }
+
+        // Any fingerprints that appeared in registrations but are not in user's devices table
+        // will be ignored here as requirement focuses on "devices with 0 also shown" for user's devices.
 
         // Sort by registration count (descending)
         usort($deviceStats, function ($a, $b) {
@@ -96,8 +106,8 @@ class SendPeriodicTelegramNotifications extends Command
         });
 
         // Device coverage stats
-        $devicesWithActivity = count($deviceStats);
-        $devicesTotal = $user->devices()->count();
+        $devicesWithActivity = collect($deviceStats)->where('registrations', '>', 0)->count();
+        $devicesTotal = $userDevices->count();
 
         return [
             'registrations' => $total,
