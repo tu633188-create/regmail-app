@@ -17,6 +17,7 @@ use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\Filter;
 use Filament\Forms\Components\DatePicker;
+use Filament\Navigation\NavigationItem;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -481,12 +482,28 @@ class UserDeviceResource extends Resource
         ];
     }
 
+    public static function getSubNavigation(): array
+    {
+        return [
+            NavigationItem::make('List')
+                ->icon(Heroicon::OutlinedRectangleStack)
+                ->url(static::getUrl('index'))
+                ->isActiveWhen(fn() => request()->routeIs('filament.*.resources.user-devices.index')),
+
+            NavigationItem::make('Charts')
+                ->icon(Heroicon::OutlinedChartBar)
+                ->url(static::getUrl('charts'))
+                ->isActiveWhen(fn() => request()->routeIs('filament.*.resources.user-devices.charts')),
+        ];
+    }
+
     public static function getPages(): array
     {
         return [
             'index' => ListUserDevices::route('/'),
             'create' => CreateUserDevice::route('/create'),
             'edit' => EditUserDevice::route('/{record}/edit'),
+            'charts' => Pages\ChartsUserDevices::route('/charts'),
         ];
     }
 }

@@ -78,11 +78,6 @@ class UserTelegramSettingsResource extends Resource
                             ->helperText('Get notified when errors occur')
                             ->visible(fn($get) => $get('telegram_enabled')),
 
-                        Toggle::make('quota_notifications')
-                            ->label('Quota Notifications')
-                            ->helperText('Get notified when quota is running low')
-                            ->visible(fn($get) => $get('telegram_enabled')),
-
                         Toggle::make('daily_summary')
                             ->label('Daily Summary')
                             ->helperText('Receive daily summary of activities')
@@ -122,10 +117,6 @@ class UserTelegramSettingsResource extends Resource
 
                 IconColumn::make('error_notifications')
                     ->label('Errors')
-                    ->boolean(),
-
-                IconColumn::make('quota_notifications')
-                    ->label('Quota')
                     ->boolean(),
 
                 IconColumn::make('daily_summary')
