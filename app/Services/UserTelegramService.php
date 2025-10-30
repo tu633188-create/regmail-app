@@ -78,8 +78,6 @@ class UserTelegramService
         $message = "📊 <b>Daily Summary</b>\n\n";
         $message .= "📧 Registrations: <b>{$stats['registrations']}</b>\n";
         $message .= "✅ Success: <b>{$stats['success']}</b>\n";
-        $message .= "❌ Failed: <b>{$stats['failed']}</b>\n";
-        $message .= "📈 Success Rate: <b>{$stats['success_rate']}%</b>\n";
         $message .= "⏰ Date: " . now()->format('Y-m-d');
 
         return $this->sendMessage($message);
@@ -105,7 +103,6 @@ class UserTelegramService
 
         // Overall statistics
         $message .= "📧 Total Registrations: <b>{$stats['registrations']}</b>\n";
-        $message .= "📈 Success Rate: <b>{$stats['success_rate']}%</b>\n";
         if (isset($stats['devices_with_activity'], $stats['devices_total'])) {
             $message .= "🖥️ Devices Active: <b>{$stats['devices_with_activity']}</b>/<b>{$stats['devices_total']}</b>\n";
         }
