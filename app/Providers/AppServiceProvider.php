@@ -23,12 +23,24 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register custom admin guard
         Auth::extend('admin', function ($app, $name, $config) {
-            return new AdminGuard(
+            $guard = new AdminGuard(
                 $name,
                 Auth::createUserProvider($config['provider']),
                 $app['session.store'],
                 $app['request']
             );
+
+            // Wire up CookieJar and Event Dispatcher like Laravel's default SessionGuard
+            $guard->setCookieJar($app['cookie']);
+            $guard->setDispatcher($app['events']);
+
+            // Ensure the guard's request instance stays in sync with the container
+            $app->refresh('request', $guard, 'setRequest');
+
+            // Align remember duration with session lifetime
+            $guard->setRememberDuration(config('session.lifetime') * 60);
+
+            return $guard;
         });
     }
 }

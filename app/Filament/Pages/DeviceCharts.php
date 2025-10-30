@@ -24,23 +24,30 @@ class DeviceCharts extends Page
         $defaultTo = now()->toDateString();
         $filters = [
             'user_id' => request()->query('user_id'),
-            'device_fingerprint' => request()->query('device_fingerprint'),
+            'device_name' => request()->query('device_name'),
             'from' => request()->query('from', $defaultFrom),
             'to' => request()->query('to', $defaultTo),
             'granularity' => request()->query('granularity', 'day'),
         ];
 
+        // Build base query
         $query = Registration::query()
             ->when(!empty($filters['user_id']), fn($q) => $q->where('registrations.user_id', $filters['user_id']))
-            ->when(!empty($filters['device_fingerprint']), fn($q) => $q->where('registrations.device_fingerprint', $filters['device_fingerprint']))
             ->when(!empty($filters['from']), fn($q) => $q->whereDate('registrations.created_at', '>=', $filters['from']))
             ->when(!empty($filters['to']), fn($q) => $q->whereDate('registrations.created_at', '<=', $filters['to']));
 
-        // Aggregate by device (x-axis: device_fingerprint, y-axis: registrations count)
+        // Aggregate by device (x-axis: device name/fingerprint, y-axis: registrations count)
         $rows = $query
             ->leftJoin('user_devices', function ($join) {
                 $join->on('user_devices.device_fingerprint', '=', 'registrations.device_fingerprint')
                     ->on('user_devices.user_id', '=', 'registrations.user_id');
+            })
+            ->when(!empty($filters['device_name']), function ($q) use ($filters) {
+                $q->where(function ($qq) use ($filters) {
+                    // Exact match from dropdown on device name, but allow fingerprint fallback
+                    $qq->where('user_devices.device_name', '=', $filters['device_name'])
+                        ->orWhere('registrations.device_fingerprint', '=', $filters['device_name']);
+                });
             })
             ->select([
                 DB::raw("COALESCE(NULLIF(user_devices.device_name, ''), registrations.device_fingerprint) as label"),
@@ -56,11 +63,25 @@ class DeviceCharts extends Page
 
         $users = User::query()->orderBy('username')->pluck('username', 'id')->all();
 
+        // Populate device names for the selected user (dependent dropdown)
+        $deviceNames = [];
+        if (!empty($filters['user_id'])) {
+            $deviceNames = DB::table('user_devices')
+                ->where('user_id', $filters['user_id'])
+                ->whereNotNull('device_name')
+                ->where('device_name', '!=', '')
+                ->distinct()
+                ->orderBy('device_name')
+                ->pluck('device_name')
+                ->all();
+        }
+
         return [
             'labels' => $labels,
             'values' => $values,
             'filters' => $filters,
             'users' => $users,
+            'deviceNames' => $deviceNames,
         ];
     }
 }
