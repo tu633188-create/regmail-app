@@ -108,6 +108,9 @@ class UserTelegramService
         $message .= "✅ Success: <b>{$stats['success']}</b>\n";
         $message .= "❌ Failed: <b>{$stats['failed']}</b>\n";
         $message .= "📈 Success Rate: <b>{$stats['success_rate']}%</b>\n";
+        if (isset($stats['devices_with_activity'], $stats['devices_total'])) {
+            $message .= "🖥️ Devices Active: <b>{$stats['devices_with_activity']}</b>/<b>{$stats['devices_total']}</b>\n";
+        }
         $message .= "⏰ Period: " . now()->subHours($hours)->format('H:i') . " - " . now()->format('H:i');
 
         return $this->sendMessage($message);

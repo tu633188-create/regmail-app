@@ -44,18 +44,14 @@ class SendPeriodicTelegramNotifications extends Command
             try {
                 $stats = $this->getStatsForPeriod($user, $hours);
 
-                if ($stats['registrations'] > 0) {
-                    $telegramService = new UserTelegramService($user);
-                    $success = $telegramService->sendPeriodicSummary($stats, $hours);
+                $telegramService = new UserTelegramService($user);
+                $success = $telegramService->sendPeriodicSummary($stats, $hours);
 
-                    if ($success) {
-                        $sentCount++;
-                        $this->line("✅ Sent to user: {$user->username}");
-                    } else {
-                        $this->warn("❌ Failed to send to user: {$user->username}");
-                    }
+                if ($success) {
+                    $sentCount++;
+                    $this->line("✅ Sent to user: {$user->username} (registrations: {$stats['registrations']})");
                 } else {
-                    $this->line("⏭️  No registrations for user: {$user->username}");
+                    $this->warn("❌ Failed to send to user: {$user->username}");
                 }
             } catch (\Exception $e) {
                 $this->error("❌ Error for user {$user->username}: " . $e->getMessage());
@@ -99,12 +95,18 @@ class SendPeriodicTelegramNotifications extends Command
             return $b['registrations'] - $a['registrations'];
         });
 
+        // Device coverage stats
+        $devicesWithActivity = count($deviceStats);
+        $devicesTotal = $user->devices()->count();
+
         return [
             'registrations' => $total,
             'success' => $success,
             'failed' => $failed,
             'success_rate' => $successRate,
             'device_stats' => $deviceStats,
+            'devices_with_activity' => $devicesWithActivity,
+            'devices_total' => $devicesTotal,
         ];
     }
 }
