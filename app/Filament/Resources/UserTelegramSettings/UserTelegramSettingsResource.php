@@ -6,11 +6,14 @@ use App\Filament\Resources\UserTelegramSettings\Pages\ManageUserTelegramSettings
 use App\Filament\Resources\UserTelegramSettings\Pages\CreateUserTelegramSettings;
 use App\Filament\Resources\UserTelegramSettings\Pages\EditUserTelegramSettings;
 use App\Models\UserTelegramSettings;
+use App\Services\UserTelegramService;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -150,6 +153,119 @@ class UserTelegramSettingsResource extends Resource
             ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
+                Action::make('setWebhook')
+                    ->label('Set Webhook')
+                    ->icon('heroicon-o-link')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Set Telegram Webhook')
+                    ->modalDescription('This will set the webhook URL for this bot. Make sure the bot token and chat ID are configured.')
+                    ->modalSubmitActionLabel('Set Webhook')
+                    ->action(function (UserTelegramSettings $record) {
+                        if (!$record->telegram_enabled || !$record->telegram_bot_token) {
+                            Notification::make()
+                                ->title('Configuration Required')
+                                ->body('Please enable Telegram and set Bot Token first.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        $webhookUrl = url("/api/telegram/webhook/" . urlencode($record->telegram_bot_token));
+                        $result = UserTelegramService::setWebhook($record->telegram_bot_token, $webhookUrl);
+
+                        if ($result['success']) {
+                            Notification::make()
+                                ->title('Webhook Set Successfully')
+                                ->body($result['message'])
+                                ->success()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('Failed to Set Webhook')
+                                ->body($result['message'])
+                                ->danger()
+                                ->send();
+                        }
+                    }),
+                Action::make('checkWebhook')
+                    ->label('Check Webhook')
+                    ->icon('heroicon-o-eye')
+                    ->color('info')
+                    ->action(function (UserTelegramSettings $record) {
+                        if (!$record->telegram_bot_token) {
+                            Notification::make()
+                                ->title('Bot Token Required')
+                                ->body('Please set Bot Token first.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        $result = UserTelegramService::getWebhookInfo($record->telegram_bot_token);
+
+                        if ($result['success']) {
+                            $info = $result['data'];
+                            $url = $info['url'] ?? 'Not set';
+                            $pendingUpdates = $info['pending_update_count'] ?? 0;
+                            $lastErrorDate = $info['last_error_date'] ?? null;
+                            $lastErrorMessage = $info['last_error_message'] ?? null;
+
+                            $message = "URL: <code>{$url}</code>\n";
+                            $message .= "Pending Updates: {$pendingUpdates}\n";
+                            if ($lastErrorDate) {
+                                $message .= "Last Error: " . date('Y-m-d H:i:s', $lastErrorDate) . "\n";
+                                $message .= "Error: {$lastErrorMessage}";
+                            }
+
+                            Notification::make()
+                                ->title('Webhook Info')
+                                ->body($message)
+                                ->info()
+                                ->persistent()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('Failed to Get Webhook Info')
+                                ->body($result['message'])
+                                ->danger()
+                                ->send();
+                        }
+                    }),
+                Action::make('deleteWebhook')
+                    ->label('Delete Webhook')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Delete Telegram Webhook')
+                    ->modalDescription('This will delete the webhook for this bot. The bot will stop receiving updates via webhook.')
+                    ->modalSubmitActionLabel('Delete')
+                    ->action(function (UserTelegramSettings $record) {
+                        if (!$record->telegram_bot_token) {
+                            Notification::make()
+                                ->title('Bot Token Required')
+                                ->body('Please set Bot Token first.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        $result = UserTelegramService::deleteWebhook($record->telegram_bot_token);
+
+                        if ($result['success']) {
+                            Notification::make()
+                                ->title('Webhook Deleted')
+                                ->body($result['message'])
+                                ->success()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('Failed to Delete Webhook')
+                                ->body($result['message'])
+                                ->danger()
+                                ->send();
+                        }
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

@@ -166,4 +166,102 @@ class UserTelegramService
 
         return $message;
     }
+
+    /**
+     * Set webhook for Telegram bot
+     */
+    public static function setWebhook(string $botToken, string $webhookUrl): array
+    {
+        try {
+            $response = Http::post("https://api.telegram.org/bot{$botToken}/setWebhook", [
+                'url' => $webhookUrl,
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return [
+                    'success' => $data['ok'] ?? false,
+                    'message' => $data['description'] ?? 'Webhook set successfully',
+                    'data' => $data,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => $response->body(),
+                'data' => $response->json(),
+            ];
+        } catch (\Exception $e) {
+            Log::error("Set webhook failed: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+                'data' => null,
+            ];
+        }
+    }
+
+    /**
+     * Get webhook info for Telegram bot
+     */
+    public static function getWebhookInfo(string $botToken): array
+    {
+        try {
+            $response = Http::get("https://api.telegram.org/bot{$botToken}/getWebhookInfo");
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return [
+                    'success' => true,
+                    'data' => $data['result'] ?? [],
+                    'raw' => $data,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => $response->body(),
+                'data' => null,
+            ];
+        } catch (\Exception $e) {
+            Log::error("Get webhook info failed: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+                'data' => null,
+            ];
+        }
+    }
+
+    /**
+     * Delete webhook for Telegram bot
+     */
+    public static function deleteWebhook(string $botToken): array
+    {
+        try {
+            $response = Http::post("https://api.telegram.org/bot{$botToken}/deleteWebhook");
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return [
+                    'success' => $data['ok'] ?? false,
+                    'message' => $data['description'] ?? 'Webhook deleted successfully',
+                    'data' => $data,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => $response->body(),
+                'data' => $response->json(),
+            ];
+        } catch (\Exception $e) {
+            Log::error("Delete webhook failed: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+                'data' => null,
+            ];
+        }
+    }
 }
