@@ -24,7 +24,7 @@ case "$1" in
         ;;
     "test")
         echo "🧪 Testing periodic notifications..."
-        php artisan telegram:send-periodic --hours=2
+        php artisan telegram:send-periodic --hours=1
         ;;
     "restart")
         echo "🔄 Restarting scheduler..."

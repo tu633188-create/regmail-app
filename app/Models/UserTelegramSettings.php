@@ -18,6 +18,7 @@ class UserTelegramSettings extends Model
         'daily_summary',
         'notification_language',
         'custom_templates',
+        'note',
     ];
 
     protected $casts = [

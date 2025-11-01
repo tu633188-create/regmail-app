@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
+use App\Models\UserTelegramSettings;
 use App\Services\UserTelegramService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -14,7 +15,7 @@ class SendPeriodicTelegramNotifications extends Command
      *
      * @var string
      */
-    protected $signature = 'telegram:send-periodic {--hours=2 : Number of hours to check for stats}';
+    protected $signature = 'telegram:send-periodic {--hours=1 : Number of hours to check for stats}';
 
     /**
      * The console command description.
@@ -33,33 +34,46 @@ class SendPeriodicTelegramNotifications extends Command
         $this->info("Sending periodic notifications for last {$hours} hours...");
         $this->info("Current time: " . now()->format('Y-m-d H:i:s'));
 
-        $users = User::whereHas('telegramSettings', function ($query) {
-            $query->where('daily_summary', true)
-                ->where('telegram_enabled', true);
-        })->get();
+        // Get all enabled Telegram settings with daily_summary enabled
+        // This handles the case where a user can have multiple bots
+        $settings = UserTelegramSettings::where('daily_summary', true)
+            ->where('telegram_enabled', true)
+            ->with('user')
+            ->get();
 
         $sentCount = 0;
+        $totalSettings = $settings->count();
 
-        foreach ($users as $user) {
+        foreach ($settings as $setting) {
             try {
+                $user = $setting->user;
+
+                if (!$user) {
+                    $this->warn("⚠️  Skipping settings ID {$setting->id}: User not found");
+                    continue;
+                }
+
                 $stats = $this->getStatsForPeriod($user, $hours);
 
-                $telegramService = new UserTelegramService($user);
+                // Pass specific settings to ensure we send to the correct bot
+                $telegramService = new UserTelegramService($user, $setting);
                 $success = $telegramService->sendPeriodicSummary($stats, $hours);
 
                 if ($success) {
                     $sentCount++;
-                    $this->line("✅ Sent to user: {$user->username} (registrations: {$stats['registrations']})");
+                    $botInfo = substr($setting->telegram_bot_token, -10) ?? 'N/A';
+                    $this->line("✅ Sent to user: {$user->username} (bot: ...{$botInfo}, registrations: {$stats['registrations']})");
                 } else {
-                    $this->warn("❌ Failed to send to user: {$user->username}");
+                    $this->warn("❌ Failed to send to user: {$user->username} (settings ID: {$setting->id})");
                 }
             } catch (\Exception $e) {
-                $this->error("❌ Error for user {$user->username}: " . $e->getMessage());
-                Log::error("Periodic notification error for user {$user->id}: " . $e->getMessage());
+                $userName = $setting->user->username ?? 'Unknown';
+                $this->error("❌ Error for user {$userName} (settings ID: {$setting->id}): " . $e->getMessage());
+                Log::error("Periodic notification error for settings {$setting->id}: " . $e->getMessage());
             }
         }
 
-        $this->info("📊 Sent {$sentCount} notifications out of {$users->count()} users");
+        $this->info("📊 Sent {$sentCount} notifications out of {$totalSettings} bot configurations");
     }
 
     public function getStatsForPeriod(User $user, int $hours): array

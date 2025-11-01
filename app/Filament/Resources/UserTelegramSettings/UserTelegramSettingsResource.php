@@ -19,6 +19,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 
@@ -101,6 +102,15 @@ class UserTelegramSettingsResource extends Resource
                             ->visible(fn($get) => $get('telegram_enabled')),
                     ])
                     ->columns(2),
+
+                Section::make('Notes')
+                    ->schema([
+                        Textarea::make('note')
+                            ->label('Note')
+                            ->placeholder('Add any notes about this bot configuration...')
+                            ->rows(3)
+                            ->columnSpanFull(),
+                    ]),
             ]);
     }
 
@@ -137,6 +147,13 @@ class UserTelegramSettingsResource extends Resource
                 IconColumn::make('daily_summary')
                     ->label('Daily Summary')
                     ->boolean(),
+
+                TextColumn::make('note')
+                    ->label('Note')
+                    ->limit(50)
+                    ->wrap()
+                    ->searchable()
+                    ->toggleable(),
 
                 TextColumn::make('updated_at')
                     ->label('Last Updated')
