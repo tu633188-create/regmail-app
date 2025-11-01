@@ -107,19 +107,9 @@ class User extends Authenticatable implements JWTSubject
             return $this->telegramSettings()->where('telegram_bot_token', $botToken)->first();
         }
 
-        // Return first configured settings or create default
-        $settings = $this->telegramSettings()->where('telegram_enabled', true)->first();
-
-        if (!$settings) {
-            $settings = $this->telegramSettings()->create([
-                'telegram_enabled' => false,
-                'registration_notifications' => false,
-                'error_notifications' => false,
-                'daily_summary' => false,
-            ]);
-        }
-
-        return $settings;
+        // Return first configured settings or return null (don't auto-create)
+        // Settings should be created explicitly through Filament admin or API
+        return $this->telegramSettings()->where('telegram_enabled', true)->first();
     }
 
     public function getTelegramSettingsByChatId(string $chatId): ?UserTelegramSettings

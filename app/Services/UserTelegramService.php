@@ -28,7 +28,7 @@ class UserTelegramService
 
     public function isEnabled(): bool
     {
-        return $this->settings->isConfigured();
+        return $this->settings && $this->settings->isConfigured();
     }
 
     public function sendMessage(string $message, string $parseMode = 'HTML'): bool
@@ -59,7 +59,7 @@ class UserTelegramService
 
     public function sendRegistrationNotification(string $email, string $status, int $registrationTime = null, string $deviceName = null): bool
     {
-        if (!$this->settings->registration_notifications) {
+        if (!$this->settings || !$this->settings->registration_notifications) {
             return false;
         }
 
@@ -69,7 +69,7 @@ class UserTelegramService
 
     public function sendErrorNotification(string $error, string $context = ''): bool
     {
-        if (!$this->settings->error_notifications) {
+        if (!$this->settings || !$this->settings->error_notifications) {
             return false;
         }
 
@@ -79,7 +79,7 @@ class UserTelegramService
 
     public function sendDailySummary(array $stats): bool
     {
-        if (!$this->settings->daily_summary) {
+        if (!$this->settings || !$this->settings->daily_summary) {
             return false;
         }
 
@@ -93,7 +93,7 @@ class UserTelegramService
 
     public function sendPeriodicSummary(array $stats, int $hours = 4): bool
     {
-        if (!$this->settings->daily_summary) {
+        if (!$this->settings || !$this->settings->daily_summary) {
             return false;
         }
 
@@ -121,7 +121,7 @@ class UserTelegramService
 
     private function getRegistrationMessage(string $email, string $status, int $registrationTime = null, string $deviceName = null): string
     {
-        $templates = $this->settings->custom_templates ?? [];
+        $templates = $this->settings ? ($this->settings->custom_templates ?? []) : [];
         $template = $templates['registration_success'] ?? null;
 
         if ($template) {
@@ -150,7 +150,7 @@ class UserTelegramService
 
     private function getErrorMessage(string $error, string $context = ''): string
     {
-        $templates = $this->settings->custom_templates ?? [];
+        $templates = $this->settings ? ($this->settings->custom_templates ?? []) : [];
         $template = $templates['error'] ?? null;
 
         if ($template) {
