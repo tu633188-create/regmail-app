@@ -12,10 +12,18 @@ class UserTelegramService
     protected $user;
     protected $settings;
 
-    public function __construct(User $user)
+    public function __construct(User $user, ?UserTelegramSettings $settings = null)
     {
         $this->user = $user;
-        $this->settings = $user->getTelegramSettings();
+        $this->settings = $settings ?? $user->getTelegramSettings();
+    }
+
+    /**
+     * Set settings explicitly (for webhook handling with specific bot)
+     */
+    public function setSettings(UserTelegramSettings $settings): void
+    {
+        $this->settings = $settings;
     }
 
     public function isEnabled(): bool

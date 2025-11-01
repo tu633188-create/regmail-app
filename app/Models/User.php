@@ -68,7 +68,7 @@ class User extends Authenticatable implements JWTSubject
 
     public function telegramSettings()
     {
-        return $this->hasOne(UserTelegramSettings::class);
+        return $this->hasMany(UserTelegramSettings::class);
     }
 
     // Helper methods
@@ -101,24 +101,45 @@ class User extends Authenticatable implements JWTSubject
         }
     }
 
-    public function getTelegramSettings(): UserTelegramSettings
+    public function getTelegramSettings(?string $botToken = null): ?UserTelegramSettings
     {
-        return $this->telegramSettings ?? $this->telegramSettings()->create([
-            'telegram_enabled' => false,
-            'registration_notifications' => false,
-            'error_notifications' => false,
-            'daily_summary' => false,
-        ]);
+        if ($botToken) {
+            return $this->telegramSettings()->where('telegram_bot_token', $botToken)->first();
+        }
+
+        // Return first configured settings or create default
+        $settings = $this->telegramSettings()->where('telegram_enabled', true)->first();
+
+        if (!$settings) {
+            $settings = $this->telegramSettings()->create([
+                'telegram_enabled' => false,
+                'registration_notifications' => false,
+                'error_notifications' => false,
+                'daily_summary' => false,
+            ]);
+        }
+
+        return $settings;
     }
 
-    public function hasTelegramConfigured(): bool
+    public function getTelegramSettingsByChatId(string $chatId): ?UserTelegramSettings
     {
-        return $this->getTelegramSettings()->isConfigured();
+        return $this->telegramSettings()
+            ->where('telegram_chat_id', $chatId)
+            ->where('telegram_enabled', true)
+            ->first();
     }
 
-    public function canReceiveTelegramNotifications(): bool
+    public function hasTelegramConfigured(?string $botToken = null): bool
     {
-        return $this->getTelegramSettings()->canReceiveNotifications();
+        $settings = $this->getTelegramSettings($botToken);
+        return $settings && $settings->isConfigured();
+    }
+
+    public function canReceiveTelegramNotifications(?string $botToken = null): bool
+    {
+        $settings = $this->getTelegramSettings($botToken);
+        return $settings && $settings->canReceiveNotifications();
     }
 
     // JWT Subject methods

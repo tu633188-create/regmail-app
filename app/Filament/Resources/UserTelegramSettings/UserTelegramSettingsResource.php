@@ -23,6 +23,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Schemas\Components\Section;
+use Illuminate\Validation\Rules\Unique;
 
 class UserTelegramSettingsResource extends Resource
 {
@@ -38,14 +39,15 @@ class UserTelegramSettingsResource extends Resource
         return $schema
             ->components([
                 Section::make('Telegram Bot Configuration')
-                    ->description('Configure personal Telegram bot for notifications')
+                    ->description('Configure Telegram bot for notifications. You can create multiple bot configurations per user.')
                     ->schema([
                         Select::make('user_id')
                             ->label('User')
                             ->relationship('user', 'username')
                             ->required()
                             ->searchable()
-                            ->preload(),
+                            ->preload()
+                            ->helperText('Each user can have multiple bot configurations'),
 
                         Toggle::make('telegram_enabled')
                             ->label('Enable Telegram Bot')
@@ -56,13 +58,25 @@ class UserTelegramSettingsResource extends Resource
                             ->placeholder('1234567890:ABCdefGHIjklMNOpqrsTUVwxyz')
                             ->required(fn($get) => $get('telegram_enabled'))
                             ->password()
-                            ->helperText('Get this from @BotFather on Telegram'),
+                            ->unique(
+                                table: UserTelegramSettings::class,
+                                column: 'telegram_bot_token',
+                                modifyRuleUsing: function (Unique $rule, $get) {
+                                    $userId = $get('user_id');
+                                    if ($userId) {
+                                        $rule->where('user_id', $userId);
+                                    }
+                                    return $rule;
+                                },
+                                ignoreRecord: true
+                            )
+                            ->helperText('Get this from @BotFather on Telegram. Must be unique per user.'),
 
                         TextInput::make('telegram_chat_id')
                             ->label('Chat ID')
                             ->placeholder('123456789')
                             ->required(fn($get) => $get('telegram_enabled'))
-                            ->helperText('Your personal Telegram chat ID'),
+                            ->helperText('Your personal Telegram chat ID. Get it by messaging @userinfobot'),
                     ])
                     ->columns(2),
 
@@ -94,22 +108,20 @@ class UserTelegramSettingsResource extends Resource
                 TextColumn::make('user.username')
                     ->label('User')
                     ->searchable()
-                    ->sortable(),
-
-                IconColumn::make('telegram_enabled')
-                    ->label('Enabled')
-                    ->boolean(),
+                    ->sortable()
+                    ->description(fn($record) => "Chat ID: {$record->telegram_chat_id}", position: 'below'),
 
                 TextColumn::make('telegram_bot_token')
                     ->label('Bot Token')
-                    ->limit(20)
+                    ->limit(30)
                     ->copyable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->searchable()
+                    ->description(fn($record) => substr($record->telegram_bot_token, -10) ?? 'N/A'),
 
-                TextColumn::make('telegram_chat_id')
-                    ->label('Chat ID')
-                    ->copyable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                IconColumn::make('telegram_enabled')
+                    ->label('Enabled')
+                    ->boolean()
+                    ->sortable(),
 
                 IconColumn::make('registration_notifications')
                     ->label('Registration')

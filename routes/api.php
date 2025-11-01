@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EmailSubmissionController;
+use App\Http\Controllers\Api\TelegramWebhookController;
 
 /*
 |--------------------------------------------------------------------------
@@ -119,3 +120,7 @@ Route::middleware('jwt.auth')->group(function () {
         Route::post('submit', [EmailSubmissionController::class, 'submit']);
     });
 });
+
+// Telegram webhook (public endpoint, secured by token validation in controller)
+Route::post('telegram/webhook/{token?}', [TelegramWebhookController::class, 'handle'])
+    ->name('telegram.webhook');
