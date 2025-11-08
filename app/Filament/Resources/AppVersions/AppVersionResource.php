@@ -80,30 +80,6 @@ class AppVersionResource extends Resource
                                 'mimetypes:application/x-msdownload,application/octet-stream,application/x-msdos-program,application/x-dosexec',
                                 'max:512000', // 500MB in KB (override Livewire default 12MB)
                             ])
-                            ->afterStateUpdated(function ($state, $set, $get) {
-                                if ($state) {
-                                    // Handle both temporary (livewire-tmp) and permanent (versions) paths
-                                    $filePath = null;
-
-                                    // Check if it's a temporary Livewire file
-                                    if (str_contains($state, 'livewire-tmp')) {
-                                        $filePath = storage_path('app/livewire-tmp/' . basename($state));
-                                    } else {
-                                        // Permanent file in versions directory
-                                        $filePath = storage_path('app/' . $state);
-                                    }
-
-                                    // Try to get file info if file exists
-                                    if ($filePath && file_exists($filePath)) {
-                                        $set('file_size', filesize($filePath));
-                                        $set('file_name', basename($state));
-                                        $set('checksum', hash_file('sha256', $filePath));
-                                    } else {
-                                        // Even if file doesn't exist yet, set file_name from path
-                                        $set('file_name', basename($state));
-                                    }
-                                }
-                            })
                             ->dehydrated(false)
                             ->default(fn($record) => $record?->file_path),
 

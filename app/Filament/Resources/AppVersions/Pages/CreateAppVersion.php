@@ -12,52 +12,36 @@ class CreateAppVersion extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // CRITICAL: file_path is required in database, must be set
+        // Filament FileUpload with directory('versions') will automatically save file to storage/app/versions/
+        // The $data['file'] will contain the path relative to storage/app/
         if (isset($data['file']) && !empty($data['file'])) {
-            $tempPath = $data['file'];
+            $filePath = $data['file'];
 
-            // If file is in livewire-tmp, move it to versions directory
-            if (str_contains($tempPath, 'livewire-tmp')) {
-                $tempFilePath = storage_path('app/livewire-tmp/' . basename($tempPath));
+            // Filament saves to 'versions/filename', so file_path should be exactly that
+            $data['file_path'] = $filePath;
 
-                // Generate clean filename
-                $version = $data['version'] ?? 'unknown';
-                $versionCode = $data['version_code'] ?? time();
-                $cleanFileName = 'app-v' . str_replace('.', '_', $version) . '-' . $versionCode . '.exe';
+            // Extract file info from the saved file
+            $fullPath = storage_path('app/' . $filePath);
 
-                // Create versions directory if not exists
-                $versionsDir = storage_path('app/versions');
-                if (!is_dir($versionsDir)) {
-                    mkdir($versionsDir, 0755, true);
+            if (file_exists($fullPath)) {
+                // Set file_size if not already set
+                if (empty($data['file_size']) || $data['file_size'] == 0) {
+                    $data['file_size'] = filesize($fullPath);
                 }
 
-                // Move file to permanent location
-                $permanentPath = 'versions/' . $cleanFileName;
-                $permanentFilePath = storage_path('app/' . $permanentPath);
+                // Set checksum if not already set
+                if (empty($data['checksum'])) {
+                    $data['checksum'] = hash_file('sha256', $fullPath);
+                }
 
-                if (file_exists($tempFilePath)) {
-                    // Get file info before moving
-                    if (empty($data['file_size']) || $data['file_size'] == 0) {
-                        $data['file_size'] = filesize($tempFilePath);
-                    }
-                    if (empty($data['checksum'])) {
-                        $data['checksum'] = hash_file('sha256', $tempFilePath);
-                    }
-
-                    // Move file
-                    rename($tempFilePath, $permanentFilePath);
-                    $data['file_path'] = $permanentPath;
-                    $data['file_name'] = $cleanFileName;
-                } else {
-                    // File doesn't exist, but we still need file_path
-                    $data['file_path'] = $permanentPath;
-                    $data['file_name'] = $cleanFileName;
+                // Set file_name from the actual saved file
+                if (empty($data['file_name'])) {
+                    $data['file_name'] = basename($filePath);
                 }
             } else {
-                // Already in permanent location
-                $data['file_path'] = $tempPath;
+                // File doesn't exist yet, but set file_name from path
                 if (empty($data['file_name'])) {
-                    $data['file_name'] = basename($tempPath);
+                    $data['file_name'] = basename($filePath);
                 }
             }
 
