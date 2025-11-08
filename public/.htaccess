@@ -3,6 +3,14 @@
         Options -MultiViews -Indexes
     </IfModule>
 
+    # PHP Upload Limits Override (only works with Apache, not php artisan serve)
+    <IfModule mod_php.c>
+        php_value upload_max_filesize 500M
+        php_value post_max_size 500M
+        php_value max_execution_time 300
+        php_value memory_limit 512M
+    </IfModule>
+
     RewriteEngine On
 
     # Handle Authorization Header

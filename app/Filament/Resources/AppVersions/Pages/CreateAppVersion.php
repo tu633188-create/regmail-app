@@ -12,11 +12,16 @@ class CreateAppVersion extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // Move file path from 'file' to 'file_path'
-        if (isset($data['file'])) {
+        // If using Google Drive link, file_path is optional
+        if (isset($data['file']) && !empty($data['file'])) {
             $data['file_path'] = $data['file'];
-            unset($data['file']);
+        } else {
+            // If using download_url, set file_path to null
+            $data['file_path'] = null;
         }
+        
+        // Remove 'file' key as it's not a database column
+        unset($data['file']);
         
         return $data;
     }

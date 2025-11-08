@@ -73,7 +73,12 @@ class AppVersionResource extends Resource
                             ->disk('local')
                             ->directory('versions')
                             ->visibility('private')
-                            ->maxSize(512000) // 500MB (adjust based on your server limits)
+                            ->maxSize(512000) // 500MB in KB
+                            ->rules([
+                                'required',
+                                'file',
+                                'max:512000', // 500MB in KB (override Livewire default 12MB)
+                            ])
                             ->afterStateUpdated(function ($state, $set, $get) {
                                 if ($state) {
                                     $filePath = storage_path('app/' . $state);
@@ -85,7 +90,7 @@ class AppVersionResource extends Resource
                                 }
                             })
                             ->dehydrated(false)
-                            ->default(fn ($record) => $record ? $record->file_path : null),
+                            ->default(fn ($record) => $record?->file_path),
                         
                         TextInput::make('file_name')
                             ->label('File Name')

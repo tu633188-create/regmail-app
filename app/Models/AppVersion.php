@@ -51,13 +51,25 @@ class AppVersion extends Model
 
         $needsUpdate = $latest->version_code > $currentVersionCode;
         
+        // Use download_url if available (Google Drive), otherwise use API download route
+        $downloadUrl = null;
+        if ($needsUpdate) {
+            if ($latest->download_url) {
+                // Use Google Drive link directly
+                $downloadUrl = $latest->download_url;
+            } else {
+                // Use API download route
+                $downloadUrl = route('api.app.version.download', $latest->id);
+            }
+        }
+        
         return [
             'needs_update' => $needsUpdate,
             'force_update' => $needsUpdate && $latest->is_force_update,
             'latest_version' => $latest->version,
             'latest_version_code' => $latest->version_code,
             'current_version_code' => $currentVersionCode,
-            'download_url' => $needsUpdate ? route('api.app.version.download', $latest->id) : null,
+            'download_url' => $downloadUrl,
             'release_notes' => $latest->release_notes,
             'file_size' => $latest->file_size,
             'checksum' => $latest->checksum,

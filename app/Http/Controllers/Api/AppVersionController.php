@@ -118,6 +118,19 @@ class AppVersionController extends Controller
             ], 404);
         }
 
+        // If using Google Drive link, redirect to it
+        if ($version->download_url) {
+            return redirect($version->download_url);
+        }
+
+        // Otherwise, download from local storage
+        if (!$version->file_path) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No download source available',
+            ], 404);
+        }
+
         $filePath = storage_path('app/' . $version->file_path);
         
         if (!file_exists($filePath)) {
