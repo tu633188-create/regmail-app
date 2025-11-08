@@ -73,7 +73,7 @@ class AppVersionResource extends Resource
                             ->disk('local')
                             ->directory('versions')
                             ->visibility('private')
-                            ->maxSize(102400) // 100MB
+                            ->maxSize(512000) // 500MB (adjust based on your server limits)
                             ->afterStateUpdated(function ($state, $set, $get) {
                                 if ($state) {
                                     $filePath = storage_path('app/' . $state);

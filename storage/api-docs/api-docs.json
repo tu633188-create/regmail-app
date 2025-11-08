@@ -12,6 +12,260 @@
         }
     ],
     "paths": {
+        "/api/app/version/check": {
+            "get": {
+                "tags": [
+                    "App Version Management"
+                ],
+                "summary": "Check for app version updates",
+                "description": "Check if a newer version of the app is available by comparing version codes",
+                "operationId": "5d18d94bc85c58ed7cfb5804a8ea6765",
+                "parameters": [
+                    {
+                        "name": "current_version_code",
+                        "in": "query",
+                        "description": "Current version code of the app (integer, e.g., 100 for version 1.0.0)",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 100
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Version check result",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "needs_update": {
+                                                    "description": "Whether an update is available",
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "force_update": {
+                                                    "description": "Whether update is forced (users must update)",
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
+                                                "latest_version": {
+                                                    "description": "Latest version string",
+                                                    "type": "string",
+                                                    "example": "1.2.0"
+                                                },
+                                                "latest_version_code": {
+                                                    "description": "Latest version code",
+                                                    "type": "integer",
+                                                    "example": 120
+                                                },
+                                                "current_version_code": {
+                                                    "description": "Current version code from request",
+                                                    "type": "integer",
+                                                    "example": 100
+                                                },
+                                                "download_url": {
+                                                    "description": "URL to download the update (null if no update needed)",
+                                                    "type": "string",
+                                                    "example": "/api/app/version/download/1"
+                                                },
+                                                "release_notes": {
+                                                    "description": "Release notes for the update",
+                                                    "type": "string",
+                                                    "example": "Bug fixes and performance improvements"
+                                                },
+                                                "file_size": {
+                                                    "description": "File size in bytes",
+                                                    "type": "integer",
+                                                    "example": 5242880
+                                                },
+                                                "checksum": {
+                                                    "description": "SHA256 checksum for file verification",
+                                                    "type": "string",
+                                                    "example": "a1b2c3d4e5f6..."
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid version code",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid version code"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/version/download/{id}": {
+            "get": {
+                "tags": [
+                    "App Version Management"
+                ],
+                "summary": "Download app version file",
+                "description": "Download the executable file for a specific app version. Only active versions are available for download.",
+                "operationId": "9a306ada6b6e9d9fce615810d8614c0c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Version ID to download",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "File download",
+                        "content": {
+                            "application/octet-stream": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Version not found or not available",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Version is not available for download"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/version/info": {
+            "get": {
+                "tags": [
+                    "App Version Management"
+                ],
+                "summary": "Get latest version information",
+                "description": "Get information about the latest active app version without checking for updates",
+                "operationId": "74ff2d14d2484930857253064d00883e",
+                "responses": {
+                    "200": {
+                        "description": "Latest version information",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "version": {
+                                                    "description": "Version string",
+                                                    "type": "string",
+                                                    "example": "1.2.0"
+                                                },
+                                                "version_code": {
+                                                    "description": "Version code for comparison",
+                                                    "type": "integer",
+                                                    "example": 120
+                                                },
+                                                "file_size": {
+                                                    "description": "File size in bytes",
+                                                    "type": "integer",
+                                                    "example": 5242880
+                                                },
+                                                "checksum": {
+                                                    "description": "SHA256 checksum",
+                                                    "type": "string",
+                                                    "example": "a1b2c3d4e5f6..."
+                                                },
+                                                "release_notes": {
+                                                    "description": "Release notes",
+                                                    "type": "string",
+                                                    "example": "Bug fixes and performance improvements"
+                                                },
+                                                "is_force_update": {
+                                                    "description": "Whether update is forced",
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
+                                                "released_at": {
+                                                    "description": "Release date",
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2025-11-09T00:00:00Z"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No version available",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No version available"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/auth/login": {
             "post": {
                 "tags": [
@@ -97,12 +351,6 @@
                                                             "type": "string"
                                                         },
                                                         "device_limit": {
-                                                            "type": "integer"
-                                                        },
-                                                        "monthly_quota": {
-                                                            "type": "integer"
-                                                        },
-                                                        "used_quota": {
                                                             "type": "integer"
                                                         }
                                                     },
@@ -422,7 +670,6 @@
                                 "required": [
                                     "email",
                                     "password",
-                                    "proxy_info",
                                     "device_fingerprint"
                                 ],
                                 "properties": {
@@ -452,6 +699,7 @@
                                         "example": "device_abc123xyz"
                                     },
                                     "proxy_info": {
+                                        "description": "Proxy information (optional)",
                                         "properties": {
                                             "ip": {
                                                 "type": "string",
@@ -619,6 +867,18 @@
         }
     },
     "components": {
+        "parameters": {
+            "ApiVersion": {
+                "name": "X-API-Version",
+                "in": "header",
+                "description": "API Version",
+                "required": true,
+                "schema": {
+                    "type": "string",
+                    "example": "1.0.0"
+                }
+            }
+        },
         "securitySchemes": {
             "bearerAuth": {
                 "type": "http",
@@ -628,6 +888,10 @@
         }
     },
     "tags": [
+        {
+            "name": "App Version Management",
+            "description": "App Version Management"
+        },
         {
             "name": "Authentication",
             "description": "Authentication"

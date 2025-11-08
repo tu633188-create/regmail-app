@@ -55,6 +55,13 @@ For other clients, use any unique string like: `device_abc123xyz`
 | `GET` | `/api/register/stats` | Get registration statistics | ✅ |
 | `POST` | `/api/register/start` | Start registration process | ❌ |
 
+### **App Version Management Endpoints**
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `GET` | `/api/app/version/check` | Check for app updates | ❌ |
+| `GET` | `/api/app/version/info` | Get latest version info | ❌ |
+| `GET` | `/api/app/version/download/{id}` | Download app executable | ❌ |
+
 ### **Telegram Notifications**
 | Feature | Description | Configuration |
 |---------|-------------|---------------|
@@ -100,6 +107,22 @@ curl -X GET https://trananhtu.vn/api/users/profile \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
+### **4. Check for app updates:**
+```bash
+curl -X GET "https://trananhtu.vn/api/app/version/check?current_version_code=100"
+```
+
+### **5. Get latest version info:**
+```bash
+curl -X GET https://trananhtu.vn/api/app/version/info
+```
+
+### **6. Download app version:**
+```bash
+curl -X GET https://trananhtu.vn/api/app/version/download/1 \
+  -o app-v1.2.0.exe
+```
+
 ## 🔧 **Development**
 
 ### **Generate/Update API Docs:**
@@ -129,6 +152,7 @@ php artisan l5-swagger:generate
 - ✅ **Device Tracking** - Include device names in notifications
 - ✅ **Custom Templates** - Personalized message templates
 - ✅ **Multi-language Support** - Multiple notification languages
+- ✅ **App Version Management** - Check for updates and download new versions
 
 ## 🎯 **Quick Start**
 
@@ -136,6 +160,51 @@ php artisan l5-swagger:generate
 2. **Login with:** `admin` / `admin123`
 3. **Configure Telegram:** Go to `https://trananhtu.vn/admin` → Telegram Settings
 4. **Test endpoints** directly in Swagger UI
+
+## 📦 **App Version Management**
+
+### **Version Check Workflow:**
+1. **Client app** calls `/api/app/version/check?current_version_code=100`
+2. **Server** compares client version code with latest active version
+3. **Response** includes:
+   - `needs_update`: `true` if update available
+   - `force_update`: `true` if update is mandatory
+   - `download_url`: URL to download new version
+   - `release_notes`: What's new in the update
+   - `checksum`: SHA256 hash for file verification
+
+### **Version Code Format:**
+- Version code is an integer for easy comparison
+- Example: Version `1.0.0` = code `100`, Version `1.2.3` = code `123`
+- Higher code = newer version
+
+### **File Verification:**
+- Each version includes SHA256 checksum
+- Client should verify downloaded file matches checksum before installation
+- Prevents corrupted or tampered downloads
+
+### **Force Update:**
+- Admin can mark versions as "force update"
+- Clients with `force_update=true` must update before continuing
+- Useful for critical security patches
+
+### **Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "needs_update": true,
+    "force_update": false,
+    "latest_version": "1.2.0",
+    "latest_version_code": 120,
+    "current_version_code": 100,
+    "download_url": "/api/app/version/download/1",
+    "release_notes": "Bug fixes and performance improvements",
+    "file_size": 5242880,
+    "checksum": "a1b2c3d4e5f6..."
+  }
+}
+```
 
 ## 📱 **Telegram Setup**
 
@@ -166,3 +235,6 @@ php artisan l5-swagger:generate
 - **Telegram notifications** are sent automatically when email registration completes
 - **Device names** are included in Telegram messages for better tracking
 - **Custom templates** can be configured per user for personalized messages
+- **App versions** can be managed through Filament admin panel at `/admin/app-versions`
+- **Version updates** are checked by comparing integer version codes (e.g., 100, 120)
+- **SHA256 checksums** are provided for file integrity verification

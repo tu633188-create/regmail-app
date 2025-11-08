@@ -116,6 +116,7 @@ TELEGRAM_WEBHOOK_URL=https://yourdomain.com/api/telegram/webhook
 - Registration management
 - Device management
 - Telegram settings management
+- App Version management
 - System settings
 - Import/Export functionality
 
@@ -124,6 +125,7 @@ TELEGRAM_WEBHOOK_URL=https://yourdomain.com/api/telegram/webhook
 - Email submission
 - Device management
 - Telegram integration
+- App version management
 - Admin operations
 
 ## Security Checklist
@@ -198,9 +200,32 @@ tar -czf regmail-backup-$(date +%Y%m%d).tar.gz /path/to/application
 git pull origin main
 composer install --no-dev --optimize-autoloader
 php artisan migrate --force
+php artisan cache:clear
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+composer dump-autoload
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
+```
+
+### After adding new Filament Resources (like App Versions):
+```bash
+# Clear all caches
+php artisan cache:clear
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+
+# Re-optimize
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+# If still not showing, try:
+php artisan filament:cache-components
+php artisan filament:upgrade
 ```
 
 ---
