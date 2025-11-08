@@ -69,7 +69,6 @@ class AppVersionResource extends Resource
                         FileUpload::make('file')
                             ->label('Executable File (.exe)')
                             ->required(fn ($operation) => $operation === 'create')
-                            ->acceptedFileExtensions(['exe'])
                             ->disk('local')
                             ->directory('versions')
                             ->visibility('private')
@@ -78,6 +77,7 @@ class AppVersionResource extends Resource
                                 'required',
                                 'file',
                                 'mimes:exe',
+                                'mimetypes:application/x-msdownload,application/octet-stream,application/x-msdos-program,application/x-dosexec',
                                 'max:512000', // 500MB in KB (override Livewire default 12MB)
                             ])
                             ->afterStateUpdated(function ($state, $set, $get) {
