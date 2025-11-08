@@ -85,8 +85,12 @@ class AppVersionResource extends Resource
                                     $filePath = storage_path('app/' . $state);
                                     if (file_exists($filePath)) {
                                         $set('file_size', filesize($filePath));
-                                        $set('file_name', basename($state));
+                                        $fileName = basename($state);
+                                        $set('file_name', $fileName);
                                         $set('checksum', hash_file('sha256', $filePath));
+                                    } else {
+                                        // Even if file doesn't exist yet, set file_name from path
+                                        $set('file_name', basename($state));
                                     }
                                 }
                             })
