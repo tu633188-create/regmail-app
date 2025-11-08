@@ -45,7 +45,7 @@ class AppVersionResource extends Resource
                             ->required()
                             ->maxLength(50)
                             ->helperText('Semantic version (e.g., 1.0.0, 1.2.3)'),
-                        
+
                         TextInput::make('version_code')
                             ->label('Version Code')
                             ->placeholder('100')
@@ -53,22 +53,22 @@ class AppVersionResource extends Resource
                             ->numeric()
                             ->unique(ignoreRecord: true)
                             ->helperText('Integer for comparison (e.g., 100 for 1.0.0, 123 for 1.2.3)'),
-                        
+
                         Textarea::make('release_notes')
                             ->label('Release Notes')
                             ->rows(4)
                             ->placeholder('What\'s new in this version...'),
-                        
+
                         Toggle::make('is_force_update')
                             ->label('Force Update')
                             ->helperText('Users must update to this version'),
                     ]),
-                
+
                 Section::make('File Upload')
                     ->schema([
                         FileUpload::make('file')
                             ->label('Executable File (.exe)')
-                            ->required(fn ($operation) => $operation === 'create')
+                            ->required(fn($operation) => $operation === 'create')
                             ->disk('local')
                             ->directory('versions')
                             ->visibility('private')
@@ -95,25 +95,19 @@ class AppVersionResource extends Resource
                                 }
                             })
                             ->dehydrated(false)
-                            ->default(fn ($record) => $record?->file_path),
-                        
+                            ->default(fn($record) => $record?->file_path),
+
                         TextInput::make('file_name')
                             ->label('File Name')
                             ->required()
                             ->dehydrated()
-                            ->default(fn ($get) => {
-                                // Auto-fill from uploaded file if available
-                                if ($get('file')) {
-                                    return basename($get('file'));
-                                }
-                                return null;
-                            }),
-                        
+                            ->default(fn($get) => basename($get('file_path'))),
+
                         TextInput::make('file_size')
                             ->label('File Size (bytes)')
                             ->disabled()
                             ->dehydrated(),
-                        
+
                         TextInput::make('checksum')
                             ->label('SHA256 Checksum')
                             ->disabled()
@@ -130,30 +124,30 @@ class AppVersionResource extends Resource
                     ->label('Version')
                     ->searchable()
                     ->sortable(),
-                
+
                 TextColumn::make('version_code')
                     ->label('Code')
                     ->sortable(),
-                
+
                 TextColumn::make('file_name')
                     ->label('File')
                     ->searchable(),
-                
+
                 TextColumn::make('file_size')
                     ->label('Size')
-                    ->formatStateUsing(fn ($state) => $state ? number_format($state / 1024 / 1024, 2) . ' MB' : '-')
+                    ->formatStateUsing(fn($state) => $state ? number_format($state / 1024 / 1024, 2) . ' MB' : '-')
                     ->sortable(),
-                
+
                 IconColumn::make('is_active')
                     ->label('Active')
                     ->boolean()
                     ->sortable(),
-                
+
                 IconColumn::make('is_force_update')
                     ->label('Force')
                     ->boolean()
                     ->sortable(),
-                
+
                 TextColumn::make('created_at')
                     ->label('Released')
                     ->dateTime()
@@ -169,16 +163,16 @@ class AppVersionResource extends Resource
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
-                    ->visible(fn (AppVersion $record) => !$record->is_active)
+                    ->visible(fn(AppVersion $record) => !$record->is_active)
                     ->action(function (AppVersion $record) {
                         // Deactivate all other versions
                         AppVersion::where('id', '<>', $record->id)
                             ->update(['is_active' => false]);
-                        
+
                         // Activate this version
                         $record->update(['is_active' => true]);
                     }),
-                
+
                 EditAction::make(),
                 DeleteAction::make(),
             ])
@@ -194,4 +188,3 @@ class AppVersionResource extends Resource
         ];
     }
 }
-
