@@ -95,8 +95,15 @@ class AppVersionResource extends Resource
                         
                         TextInput::make('file_name')
                             ->label('File Name')
-                            ->disabled()
-                            ->dehydrated(),
+                            ->required()
+                            ->dehydrated()
+                            ->default(fn ($get) => {
+                                // Auto-fill from uploaded file if available
+                                if ($get('file')) {
+                                    return basename($get('file'));
+                                }
+                                return null;
+                            }),
                         
                         TextInput::make('file_size')
                             ->label('File Size (bytes)')
