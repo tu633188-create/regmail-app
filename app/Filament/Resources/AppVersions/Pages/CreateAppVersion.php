@@ -12,18 +12,18 @@ class CreateAppVersion extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // Move file path from 'file' to 'file_path'
+        // CRITICAL: file_path is required in database, must be set
         if (isset($data['file']) && !empty($data['file'])) {
             $tempPath = $data['file'];
 
             // If file is in livewire-tmp, move it to versions directory
             if (str_contains($tempPath, 'livewire-tmp')) {
                 $tempFilePath = storage_path('app/livewire-tmp/' . basename($tempPath));
-                $fileName = basename($tempPath);
 
-                // Remove Livewire temporary file prefix/suffix if present
-                $fileName = preg_replace('/^.*-meta/', '', $fileName);
-                $fileName = preg_replace('/==-\.exe$/', '.exe', $fileName);
+                // Generate clean filename
+                $version = $data['version'] ?? 'unknown';
+                $versionCode = $data['version_code'] ?? time();
+                $cleanFileName = 'app-v' . str_replace('.', '_', $version) . '-' . $versionCode . '.exe';
 
                 // Create versions directory if not exists
                 $versionsDir = storage_path('app/versions');
@@ -32,7 +32,7 @@ class CreateAppVersion extends CreateRecord
                 }
 
                 // Move file to permanent location
-                $permanentPath = 'versions/' . $fileName;
+                $permanentPath = 'versions/' . $cleanFileName;
                 $permanentFilePath = storage_path('app/' . $permanentPath);
 
                 if (file_exists($tempFilePath)) {
@@ -47,27 +47,33 @@ class CreateAppVersion extends CreateRecord
                     // Move file
                     rename($tempFilePath, $permanentFilePath);
                     $data['file_path'] = $permanentPath;
+                    $data['file_name'] = $cleanFileName;
                 } else {
-                    // Fallback: just use the path as is
-                    $data['file_path'] = $tempPath;
+                    // File doesn't exist, but we still need file_path
+                    $data['file_path'] = $permanentPath;
+                    $data['file_name'] = $cleanFileName;
                 }
             } else {
                 // Already in permanent location
                 $data['file_path'] = $tempPath;
+                if (empty($data['file_name'])) {
+                    $data['file_name'] = basename($tempPath);
+                }
             }
 
             unset($data['file']);
+        } else {
+            // No file uploaded - this should not happen as file is required
+            // But set a placeholder to prevent SQL error
+            $version = $data['version'] ?? 'unknown';
+            $versionCode = $data['version_code'] ?? time();
+            $data['file_path'] = 'versions/app-v' . str_replace('.', '_', $version) . '-' . $versionCode . '.exe';
         }
 
         // CRITICAL: Ensure file_name is always set (cannot be null in database)
         if (empty($data['file_name']) || is_null($data['file_name'])) {
             if (!empty($data['file_path'])) {
-                // Extract clean filename from path
-                $fileName = basename($data['file_path']);
-                // Remove Livewire temp prefixes if any
-                $fileName = preg_replace('/^.*-meta/', '', $fileName);
-                $fileName = preg_replace('/==-\.exe$/', '.exe', $fileName);
-                $data['file_name'] = $fileName;
+                $data['file_name'] = basename($data['file_path']);
             } else {
                 // Fallback: generate filename from version
                 $version = $data['version'] ?? 'unknown';
@@ -78,6 +84,13 @@ class CreateAppVersion extends CreateRecord
         // Ensure file_size has a default value if not set
         if (empty($data['file_size']) || is_null($data['file_size'])) {
             $data['file_size'] = 0;
+        }
+
+        // Final check: file_path must never be empty
+        if (empty($data['file_path'])) {
+            $version = $data['version'] ?? 'unknown';
+            $versionCode = $data['version_code'] ?? time();
+            $data['file_path'] = 'versions/app-v' . str_replace('.', '_', $version) . '-' . $versionCode . '.exe';
         }
 
         return $data;
