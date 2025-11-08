@@ -66,9 +66,9 @@ class AppVersionResource extends Resource
 
                 Section::make('File Upload')
                     ->schema([
-                        FileUpload::make('file')
+                        FileUpload::make('file_path')
                             ->label('Executable File (.exe)')
-                            ->required(fn($operation) => $operation === 'create')
+                            ->required()
                             ->disk('local')
                             ->directory('versions')
                             ->visibility('private')
@@ -78,16 +78,23 @@ class AppVersionResource extends Resource
                                 'file',
                                 'mimes:exe',
                                 'mimetypes:application/x-msdownload,application/octet-stream,application/x-msdos-program,application/x-dosexec',
-                                'max:512000', // 500MB in KB (override Livewire default 12MB)
+                                'max:512000',
                             ])
-                            ->dehydrated(false)
-                            ->default(fn($record) => $record?->file_path),
+                            ->afterStateUpdated(function ($state, $set) {
+                                if ($state) {
+                                    $fullPath = storage_path('app/' . $state);
+                                    if (file_exists($fullPath)) {
+                                        $set('file_name', basename($state));
+                                        $set('file_size', filesize($fullPath));
+                                        $set('checksum', hash_file('sha256', $fullPath));
+                                    }
+                                }
+                            }),
 
                         TextInput::make('file_name')
                             ->label('File Name')
-                            ->required()
-                            ->dehydrated()
-                            ->default(fn($get) => basename($get('file_path'))),
+                            ->disabled()
+                            ->dehydrated(),
 
                         TextInput::make('file_size')
                             ->label('File Size (bytes)')
