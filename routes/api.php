@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EmailSubmissionController;
 use App\Http\Controllers\Api\TelegramWebhookController;
+use App\Http\Controllers\Api\AppVersionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -124,3 +125,10 @@ Route::middleware('jwt.auth')->group(function () {
 // Telegram webhook (public endpoint, secured by token validation in controller)
 Route::post('telegram/webhook/{token?}', [TelegramWebhookController::class, 'handle'])
     ->name('telegram.webhook');
+
+// App version management (public endpoints for version check and download)
+Route::prefix('app/version')->group(function () {
+    Route::get('check', [AppVersionController::class, 'check'])->name('api.app.version.check');
+    Route::get('info', [AppVersionController::class, 'info'])->name('api.app.version.info');
+    Route::get('download/{id}', [AppVersionController::class, 'download'])->name('api.app.version.download');
+});

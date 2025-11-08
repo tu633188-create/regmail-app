@@ -35,7 +35,7 @@ class RegistrationTestSeeder extends Seeder
                 'device_type' => 'mobile',
                 'user_agent' => 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)',
                 'ip_address' => '192.168.1.100',
-                'last_active_at' => now(),
+                'last_seen_at' => now(),
             ],
             [
                 'user_id' => $testUser1->id,
@@ -44,7 +44,7 @@ class RegistrationTestSeeder extends Seeder
                 'device_type' => 'desktop',
                 'user_agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
                 'ip_address' => '192.168.1.101',
-                'last_active_at' => now(),
+                'last_seen_at' => now(),
             ],
             [
                 'user_id' => $testUser2->id,
@@ -53,7 +53,7 @@ class RegistrationTestSeeder extends Seeder
                 'device_type' => 'mobile',
                 'user_agent' => 'Mozilla/5.0 (Linux; Android 14; SM-S921B)',
                 'ip_address' => '192.168.1.102',
-                'last_active_at' => now(),
+                'last_seen_at' => now(),
             ],
         ];
 
