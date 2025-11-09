@@ -167,11 +167,15 @@ class EmailSubmissionController extends Controller
                     $deviceName = $device->device_name ?? 'Unknown Device';
                 }
 
+                // Get mode from metadata (optional)
+                $mode = $request->metadata['mode'] ?? null;
+
                 $telegram->sendRegistrationNotification(
                     $request->email,
                     'success',
                     $registrationTimeSeconds,
-                    $deviceName
+                    $deviceName,
+                    $mode
                 );
             } catch (\Exception $e) {
                 Log::error('Telegram notification failed', [

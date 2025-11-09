@@ -57,13 +57,13 @@ class UserTelegramService
         }
     }
 
-    public function sendRegistrationNotification(string $email, string $status, int $registrationTime = null, string $deviceName = null): bool
+    public function sendRegistrationNotification(string $email, string $status, int $registrationTime = null, string $deviceName = null, ?string $mode = null): bool
     {
         if (!$this->settings || !$this->settings->registration_notifications) {
             return false;
         }
 
-        $message = $this->getRegistrationMessage($email, $status, $registrationTime, $deviceName);
+        $message = $this->getRegistrationMessage($email, $status, $registrationTime, $deviceName, $mode);
         return $this->sendMessage($message);
     }
 
@@ -119,18 +119,21 @@ class UserTelegramService
         return $this->sendMessage($message);
     }
 
-    private function getRegistrationMessage(string $email, string $status, int $registrationTime = null, string $deviceName = null): string
+    private function getRegistrationMessage(string $email, string $status, int $registrationTime = null, string $deviceName = null, ?string $mode = null): string
     {
         $templates = $this->settings ? ($this->settings->custom_templates ?? []) : [];
         $template = $templates['registration_success'] ?? null;
 
         if ($template) {
-            return str_replace(['{email}', '{device}'], [$email, $deviceName ?? 'Unknown'], $template);
+            return str_replace(['{email}', '{device}', '{mode}'], [$email, $deviceName ?? 'Unknown', $mode ?? ''], $template);
         }
 
         $message = "📧 <b>Email Registration Update</b>\n\n";
         $message .= "📮 Email: <code>{$email}</code>\n";
-        $message .= "📊 Status: <b>{$status}</b>\n";
+
+        if ($mode) {
+            $message .= "🔧 Mode: <code>{$mode}</code>\n";
+        }
 
         if ($deviceName) {
             $message .= "📱 Device: <code>{$deviceName}</code>\n";
