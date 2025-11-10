@@ -154,10 +154,8 @@ class EmailSubmissionController extends Controller
                 'completed_at' => now()
             ]);
 
-            // Send Telegram notification
+            // Send Telegram notification to all configured bots
             try {
-                $telegram = new UserTelegramService($user);
-
                 // Get device name from device_fingerprint
                 $deviceName = 'Unknown Device';
                 $device = \App\Models\UserDevice::where('device_fingerprint', $request->device_fingerprint)
@@ -170,13 +168,32 @@ class EmailSubmissionController extends Controller
                 // Get mode from metadata (optional)
                 $mode = $request->metadata['mode'] ?? null;
 
-                $telegram->sendRegistrationNotification(
-                    $request->email,
-                    'success',
-                    $registrationTimeSeconds,
-                    $deviceName,
-                    $mode
-                );
+                // Get all enabled Telegram settings with registration notifications enabled
+                $telegramSettings = $user->telegramSettings()
+                    ->where('telegram_enabled', true)
+                    ->where('registration_notifications', true)
+                    ->get();
+
+                // Send notification to all configured bots
+                foreach ($telegramSettings as $settings) {
+                    try {
+                        $telegram = new UserTelegramService($user, $settings);
+                        $telegram->sendRegistrationNotification(
+                            $request->email,
+                            'success',
+                            $registrationTimeSeconds,
+                            $deviceName,
+                            $mode
+                        );
+                    } catch (\Exception $e) {
+                        Log::error('Telegram notification failed for specific bot', [
+                            'user_id' => $user->id,
+                            'settings_id' => $settings->id,
+                            'error' => $e->getMessage()
+                        ]);
+                        // Continue to next bot even if one fails
+                    }
+                }
             } catch (\Exception $e) {
                 Log::error('Telegram notification failed', [
                     'user_id' => $user->id,
