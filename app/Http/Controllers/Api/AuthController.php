@@ -587,4 +587,161 @@ class AuthController extends Controller
 
         return 'Unknown';
     }
+
+    /**
+     * @OA\Get(
+     *     path="/api/settings/mode",
+     *     summary="Get device mode setting",
+     *     description="Get current mode configuration for the authenticated device. Mode can be: dual, cloud, or google",
+     *     tags={"Settings"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Mode retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="mode", type="string", example="dual", enum={"dual", "cloud", "google"})
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Device not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Device not found")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Unauthorized")
+     *         )
+     *     )
+     * )
+     */
+    public function getMode(Request $request): JsonResponse
+    {
+        try {
+            $user = JWTAuth::parseToken()->authenticate();
+
+            // Get mode from app settings (global setting for all devices)
+            $mode = \App\Models\AppSetting::get('mode', 'dual');
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'mode' => $mode,
+                ]
+            ]);
+        } catch (JWTException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+    }
+
+    /**
+     * @OA\Put(
+     *     path="/api/settings/mode",
+     *     summary="Update device mode setting",
+     *     description="Update mode configuration for the authenticated device. Mode can be: dual, cloud, or google",
+     *     tags={"Settings"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"mode"},
+     *             @OA\Property(property="mode", type="string", example="dual", enum={"dual", "cloud", "google"}, description="Mode to set: dual, cloud, or google")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Mode updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Mode updated successfully"),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="mode", type="string", example="dual")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Validation error"),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Device not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Device not found")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Unauthorized")
+     *         )
+     *     )
+     * )
+     */
+    public function updateMode(Request $request): JsonResponse
+    {
+        try {
+            $user = JWTAuth::parseToken()->authenticate();
+
+            // Check if user is admin
+            if (!$user->isAdmin()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only admins can update mode settings'
+                ], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'mode' => 'required|string|in:dual,cloud,google',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation error',
+                    'errors' => $validator->errors()
+                ], 400);
+            }
+
+            // Update global mode setting
+            \App\Models\AppSetting::set('mode', $request->mode);
+
+            Log::info('Global mode updated', [
+                'user_id' => $user->id,
+                'mode' => $request->mode,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Mode updated successfully',
+                'data' => [
+                    'mode' => $request->mode,
+                ]
+            ]);
+        } catch (JWTException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+    }
 }

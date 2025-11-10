@@ -120,6 +120,12 @@ Route::middleware('jwt.auth')->group(function () {
     Route::prefix('email')->group(function () {
         Route::post('submit', [EmailSubmissionController::class, 'submit']);
     });
+
+    // Settings routes
+    Route::prefix('settings')->group(function () {
+        Route::get('mode', [AuthController::class, 'getMode']);
+        Route::put('mode', [AuthController::class, 'updateMode']);
+    });
 });
 
 // Telegram webhook (public endpoint, secured by token validation in controller)
