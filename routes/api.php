@@ -123,10 +123,12 @@ Route::middleware('jwt.auth')->group(function () {
 
     // Settings routes
     Route::prefix('settings')->group(function () {
-        Route::get('mode', [AuthController::class, 'getMode']);
         Route::put('mode', [AuthController::class, 'updateMode']);
     });
 });
+
+// Public settings routes (no authentication required)
+Route::get('settings/mode', [AuthController::class, 'getMode']);
 
 // Telegram webhook (public endpoint, secured by token validation in controller)
 Route::post('telegram/webhook/{token?}', [TelegramWebhookController::class, 'handle'])
