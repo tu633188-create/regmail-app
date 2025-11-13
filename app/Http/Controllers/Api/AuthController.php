@@ -625,22 +625,15 @@ class AuthController extends Controller
      */
     public function getMode(Request $request): JsonResponse
     {
-        try {
-            // Get mode from app settings (global setting for all devices)
-            $mode = \App\Models\AppSetting::get('mode', 'dual');
+        // Get mode from app settings (global setting for all devices)
+        $mode = \App\Models\AppSetting::get('mode', 'dual');
 
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'mode' => $mode,
-                ]
-            ]);
-        } catch (JWTException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized'
-            ], 401);
-        }
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'mode' => $mode,
+            ]
+        ]);
     }
 
     /**
