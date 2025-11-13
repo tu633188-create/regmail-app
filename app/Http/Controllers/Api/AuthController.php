@@ -626,8 +626,6 @@ class AuthController extends Controller
     public function getMode(Request $request): JsonResponse
     {
         try {
-            $user = JWTAuth::parseToken()->authenticate();
-
             // Get mode from app settings (global setting for all devices)
             $mode = \App\Models\AppSetting::get('mode', 'dual');
 
